@@ -1,0 +1,22 @@
+name: shus-smart-bedstead
+components:
+  - id: main
+    capabilities:
+      - id: firmwareUpdate
+        ephemeral: false
+      - id: refresh
+        ephemeral: false
+      - id: absolutegreen57841.movementControl
+        version: 1
+        ephemeral: false
+      - id: absolutegreen57841.massageControl
+        version: 1
+        ephemeral: false
+      - id: absolutegreen57841.mode
+        version: 1
+        ephemeral: false
+      - id: absolutegreen57841.nightLight
+        version: 1
+        ephemeral: false
+    categories:
+      - name: Bed

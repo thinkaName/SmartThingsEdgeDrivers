@@ -1,0 +1,6 @@
+zigbeeManufacturer:
+  - id: "SHUS/shus.smart.bedstead"
+    deviceLabel: Shus Smart Bedstead
+    manufacturer: SHUS
+    model: shus.smart.bedstead
+    deviceProfileName: shus-smart-bedstead

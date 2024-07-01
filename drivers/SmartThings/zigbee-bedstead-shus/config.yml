@@ -1,0 +1,6 @@
+name: 'Zibgee Bedstead'
+packageKey: 'zibgee-bedstead'
+permissions:
+  zigbee: {}
+description: "SmartThings driver for Zigbee Bedstead devices"
+vendorSupportInformation: "https://support.smartthings.com"
