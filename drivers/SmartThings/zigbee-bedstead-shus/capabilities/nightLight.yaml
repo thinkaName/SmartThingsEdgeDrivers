@@ -1,0 +1,36 @@
+id: absolutegreen57841.nightLight
+version: 1
+status: proposed
+name: Night Light
+ephemeral: false
+attributes:
+  state:
+    schema:
+      type: object
+      properties:
+        value:
+          title: state
+          type: string
+          enum:
+            - off
+            - 10M
+            - 8H
+            - 10H
+      additionalProperties: false
+      required:
+        - value
+    setter: stateControl
+    enumCommands: []
+commands:
+  stateControl:
+    name: stateControl
+    arguments:
+      - name: stateControl
+        optional: false
+        schema:
+          type: string
+          enum:
+            - off
+            - 10M
+            - 8H
+            - 10H

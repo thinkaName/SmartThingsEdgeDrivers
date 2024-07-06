@@ -1,0 +1,82 @@
+id: absolutegreen57841.movementControl
+version: 1
+status: proposed
+name: Movement Control
+ephemeral: false
+attributes:
+  back:
+    schema:
+      type: object
+      additionalProperties: false
+      properties:
+        value:
+          title: back
+          type: string
+          enum:
+            - up
+            - down
+      required:
+        - value
+    setter: backControl
+    enumCommands: []
+  leg:
+    schema:
+      type: object
+      additionalProperties: false
+      properties:
+        value:
+          title: leg
+          type: string
+          enum:
+            - up
+            - down
+      required:
+        - value
+    setter: legControl
+    enumCommands: []
+  backLeg:
+    schema:
+      type: object
+      additionalProperties: false
+      properties:
+        value:
+          title: backLeg
+          type: string
+          enum:
+            - up
+            - down
+      required:
+        - value
+    setter: backLegControl
+    enumCommands: []
+commands:
+  backControl:
+    name: backControl
+    arguments:
+      - name: backControl
+        optional: false
+        schema:
+          type: string
+          enum:
+            - up
+            - down
+  legControl:
+    name: legControl
+    arguments:
+      - name: legControl
+        optional: false
+        schema:
+          type: string
+          enum:
+            - up
+            - down
+  backLegControl:
+    name: backLegControl
+    arguments:
+      - name: backLegControl
+        optional: false
+        schema:
+          type: string
+          enum:
+            - up
+            - down

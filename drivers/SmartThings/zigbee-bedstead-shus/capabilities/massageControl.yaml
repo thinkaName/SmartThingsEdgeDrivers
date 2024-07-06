@@ -1,0 +1,117 @@
+id: absolutegreen57841.massageControl
+version: 1
+status: proposed
+name: Massage Control
+ephemeral: false
+attributes:
+  state:
+    schema:
+      type: object
+      properties:
+        value:
+          title: state
+          type: string
+          enum:
+            - off
+            - 10M
+            - 20M
+            - 30M
+      additionalProperties: false
+      required:
+        - value
+    setter: stateControl
+    enumCommands: []
+  backStrength:
+    schema:
+      type: object
+      additionalProperties: false
+      properties:
+        value:
+          type: integer
+          minimum: 0
+          maximum: 3
+        unit:
+          type: string
+          enum:
+            - level
+          default: level
+      required:
+        - value
+    setter: backStrengthControl
+    enumCommands: []
+  legStrength:
+    schema:
+      type: object
+      additionalProperties: false
+      properties:
+        value:
+          type: integer
+          minimum: 0
+          maximum: 3
+        unit:
+          type: string
+          enum:
+            - level
+          default: level
+      required:
+        - value
+    setter: legStrengthControl
+    enumCommands: []
+  frequency:
+    schema:
+      type: object
+      additionalProperties: false
+      properties:
+        value:
+          type: integer
+          minimum: 1
+          maximum: 4
+        unit:
+          type: string
+          enum:
+            - level
+          default: level
+      required:
+        - value
+    setter: frequencyControl
+    enumCommands: []
+commands:
+  stateControl:
+    name: stateControl
+    arguments:
+      - name: stateControl
+        optional: false
+        schema:
+          type: string
+          enum:
+            - off
+            - 10M
+            - 20M
+            - 30M
+  backStrengthControl:
+    name: backStrengthControl
+    arguments:
+      - name: backStrengthControl
+        schema:
+          type: integer
+          minimum: 0
+          maximum: 3
+        optional: false
+  legStrengthControl:
+    name: legStrengthControl
+    arguments:
+      - name: legStrengthControl
+        schema:
+          type: integer
+          minimum: 0
+          maximum: 3
+        optional: false
+  frequencyControl:
+    name: frequencyControl
+    arguments:
+      - name: frequencyControl
+        schema:
+          type: integer
+          minimum: 1
+          maximum: 4
+        optional: false

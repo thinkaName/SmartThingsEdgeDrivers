@@ -1,0 +1,42 @@
+id: absolutegreen57841.mode
+version: 1
+status: proposed
+name: Mode
+ephemeral: false
+attributes:
+  state:
+    schema:
+      type: object
+      properties:
+        value:
+          title: state
+          type: string
+          enum:
+            - stop
+            - zeroGravity
+            - leisure
+            - snoringIntervention
+            - reading
+            - lyingFlat
+            - comfort
+      additionalProperties: false
+      required:
+        - value
+    setter: stateControl
+    enumCommands: []
+commands:
+  stateControl:
+    name: stateControl
+    arguments:
+      - name: stateControl
+        optional: false
+        schema:
+          type: string
+          enum:
+            - stop
+            - zeroGravity
+            - leisure
+            - snoringIntervention
+            - reading
+            - lyingFlat
+            - comfort

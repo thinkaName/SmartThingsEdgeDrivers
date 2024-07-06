@@ -25,37 +25,24 @@ local FINGERPRINTS = {
 -- #############################
 -- # Attribute handlers define #
 -- #############################
-local function back_control_attr_handler(driver, device, value, zb_rx)
-  if value.value == custom_clusters.shus_smart_bedstead.attributes.back_control.value.up then
-    device:emit_event(custom_capabilities.movement_control.back.up())
-  elseif value.value == custom_clusters.shus_smart_bedstead.attributes.back_control.value.down then
-    device:emit_event(custom_capabilities.movement_control.back.down())
+local function process_control_attr_factory(cmd)
+  return function(driver, device, value, zb_rx)
+    if value.value == 0 then
+      device:emit_event(cmd.up())
+    elseif value.value == 1 then
+      device:emit_event(cmd.down())
+    end
+  end
 end
 
-local function leg_control_attr_handler(driver, device, value, zb_rx)
-  if value.value == custom_clusters.shus_smart_bedstead.attributes.leg_control.value.up then
-    device:emit_event(custom_capabilities.movement_control.leg.up())
-  elseif value.value == custom_clusters.shus_smart_bedstead.attributes.leg_control.value.down then
-    device:emit_event(custom_capabilities.movement_control.leg.down())
-end
-
-local function back_leg_control_attr_handler(driver, device, value, zb_rx)
-  if value.value == custom_clusters.shus_smart_bedstead.attributes.back_leg_control.value.up then
-    device:emit_event(custom_capabilities.movement_control.backLeg.up())
-  elseif value.value == custom_clusters.shus_smart_bedstead.attributes.back_leg_control.value.down then
-    device:emit_event(custom_capabilities.movement_control.backLeg.down())
-end
-
-local function back_massage_attr_handler(driver, device, value, zb_rx)
-  device:emit_event(custom_capabilities.massage_control.backStrength(value.value))
-end
-
-local function leg_massage_attr_handler(driver, device, value, zb_rx)
-  device:emit_event(custom_capabilities.massage_control.legStrength(value.value))
-end
-
-local function massage_frequency_attr_handler(driver, device, value, zb_rx)
-  device:emit_event(custom_capabilities.massage_control.frequency(value.value + 1))
+local function process_massage_attr_factory(cmd)
+  return function(driver, device, value, zb_rx)
+    local data = value.value
+    if cmd == custom_capabilities.massage_control.frequency then
+      data = value.value + 1
+    end
+    device:emit_event(cmd(data))
+  end
 end
 
 local function massage_switch_attr_handler(driver, device, value, zb_rx)
@@ -127,67 +114,6 @@ local function do_refresh(driver, device)
   send_read_attr_request(device, custom_clusters.shus_smart_bedstead, custom_clusters.shus_smart_bedstead.attributes.night_light)
 end
 
-local function process_up_down_cap(device, value, cluster, attr, cap_attr)
-  local payload = attr.value.down
-  local event = cap_attr.up()
-
-  if value == "up" then
-    payload = attr.value.up
-    event = cap_attr.down()
-  end
-
-  device:send(
-    cluster_base.write_manufacturer_specific_attribute(
-      device,
-      cluster.id,
-      attr.id,
-      cluster.mfg_specific_code,
-      attr.value_type,
-      payload
-    )
-  )
-
-  -- Since back/leg/backLeg control attributes do not support reporting,
-  -- So we need to actively emit_event instead of waiting for attribute callback.
-  -- Since the mechanical structure takes about 1 second to run,
-  -- we added a 1 second delay before emit_event
-  socket.sleep(1)
-
-  device:emit_event(event)
-
-end
-
-local function movement_control_back_cap_handler(driver, device, cmd)
-
-  process_up_down_cap(
-    device,
-    cmd.args.backControl,
-    custom_clusters.shus_smart_bedstead,
-    custom_clusters.shus_smart_bedstead.attributes.back_control,
-    custom_capabilities.movement_control.back
-  )
-end
-
-local function movement_control_leg_cap_handler(driver, device, cmd)
-  process_up_down_cap(
-    device,
-    cmd.args.legControl,
-    custom_clusters.shus_smart_bedstead,
-    custom_clusters.shus_smart_bedstead.attributes.leg_control,
-    custom_capabilities.movement_control.leg
-  )
-end
-
-local function movement_control_back_leg_cap_handler(driver, device, cmd)
-  process_up_down_cap(
-    device,
-    cmd.args.backLegControl,
-    custom_clusters.shus_smart_bedstead,
-    custom_clusters.shus_smart_bedstead.attributes.back_leg_control,
-    custom_capabilities.movement_control.backLeg
-  )
-end
-
 local function massage_control_state_cap_handler(driver, device, cmd)
   local payload = custom_clusters.shus_smart_bedstead.attributes.massage_switch.value.off
   if cmd.args.stateControl == "10M" then
@@ -210,44 +136,23 @@ local function massage_control_state_cap_handler(driver, device, cmd)
   )
 end
 
-local function massage_control_back_strength_cap_handler(driver, device, cmd)
-print("massage_control_back_strength_cap_handler")
-  device:send(
-    cluster_base.write_manufacturer_specific_attribute(
-      device,
-      custom_clusters.shus_smart_bedstead.id,
-      custom_clusters.shus_smart_bedstead.attributes.back_massage.id,
-      custom_clusters.shus_smart_bedstead.mfg_specific_code,
-      custom_clusters.shus_smart_bedstead.attributes.back_massage.value_type,
-      cmd.args.backStrengthControl
+local function process_massage_control_cap_factory(cap,attrs)
+  return function(driver, device, cmd)
+    local payload = cmd.args[cap]
+    if cap == "frequencyControl" then
+      payload = payload-1
+    end
+    device:send(
+      cluster_base.write_manufacturer_specific_attribute(
+        device,
+        custom_clusters.shus_smart_bedstead.id,
+        custom_clusters.shus_smart_bedstead.attributes[attrs].id,
+        custom_clusters.shus_smart_bedstead.mfg_specific_code,
+        custom_clusters.shus_smart_bedstead.attributes[attrs].value_type,
+        payload
     )
-  )
-end
-
-local function massage_control_leg_strength_cap_handler(driver, device, cmd)
-  device:send(
-    cluster_base.write_manufacturer_specific_attribute(
-      device,
-      custom_clusters.shus_smart_bedstead.id,
-      custom_clusters.shus_smart_bedstead.attributes.leg_massage.id,
-      custom_clusters.shus_smart_bedstead.mfg_specific_code,
-      custom_clusters.shus_smart_bedstead.attributes.leg_massage.value_type,
-      cmd.args.legStrengthControl
     )
-  )
-end
-
-local function massage_control_frequency_cap_handler(driver, device, cmd)
-  device:send(
-    cluster_base.write_manufacturer_specific_attribute(
-      device,
-      custom_clusters.shus_smart_bedstead.id,
-      custom_clusters.shus_smart_bedstead.attributes.massage_frequency.id,
-      custom_clusters.shus_smart_bedstead.mfg_specific_code,
-      custom_clusters.shus_smart_bedstead.attributes.massage_frequency.value_type,
-      cmd.args.frequencyControl - 1
-    )
-  )
+  end
 end
 
 local function mode_cap_handler(driver, device, cmd)
@@ -302,12 +207,39 @@ local function night_light_cap_handler(driver, device, cmd)
   )
 end
 
+
+local function process_movement_control_cap_factory(cap,attrs,cap_attr)
+  return function(driver, device, cmd)
+    device:send(
+      cluster_base.write_manufacturer_specific_attribute(
+        device,
+        custom_clusters.shus_smart_bedstead.id,
+        custom_clusters.shus_smart_bedstead.attributes[attrs].id,
+        custom_clusters.shus_smart_bedstead.mfg_specific_code,
+        custom_clusters.shus_smart_bedstead.attributes[attrs].value_type,
+        custom_clusters.shus_smart_bedstead.attributes[attrs].value[cmd.args[cap]]
+    )
+    )
+    --Since the same button is triggered on the APP and the same event will be emit by the driver,
+    --the APP will pop up an error. Therefore, an opposite event needs to be triggered to ensure that
+    --the user will not receive an error when continuously triggering the same button
+    local event = cap_attr.down()
+    local event1 = cap_attr.up()
+    if cmd.args[cap] == "up" then
+        event = cap_attr.up()
+        event1 = cap_attr.down()
+    end
+    device:emit_event(event)
+    socket.sleep(1)
+    device:emit_event(event1)
+  end
+end
+
 -- #############################
 -- # Lifecycle handlers define #
 -- #############################
 
 local function device_init(driver, device)
-  -- TODO
 end
 
 local function device_added(driver, device)
@@ -318,7 +250,6 @@ local function device_added(driver, device)
 end
 
 local function do_configure(driver, device)
-  -- TODO
 end
 
 local function is_shus_products(opts, driver, device)
@@ -347,12 +278,12 @@ local shus_smart_bedstead = {
   zigbee_handlers = {
     attr = {
       [custom_clusters.shus_smart_bedstead.id] = {
-		[custom_clusters.shus_smart_bedstead.attributes.back_control.id] = back_control_attr_handler,
-        [custom_clusters.shus_smart_bedstead.attributes.leg_control.id] = leg_control_attr_handler,
-        [custom_clusters.shus_smart_bedstead.attributes.back_leg_control.id] = back_leg_control_attr_handler,
-        [custom_clusters.shus_smart_bedstead.attributes.back_massage.id] = back_massage_attr_handler,
-        [custom_clusters.shus_smart_bedstead.attributes.leg_massage.id] = leg_massage_attr_handler,
-        [custom_clusters.shus_smart_bedstead.attributes.massage_frequency.id] = massage_frequency_attr_handler,
+        [custom_clusters.shus_smart_bedstead.attributes.back_control.id] = process_control_attr_factory(custom_capabilities.movement_control.back),
+        [custom_clusters.shus_smart_bedstead.attributes.leg_control.id] = process_control_attr_factory(custom_capabilities.movement_control.leg),
+        [custom_clusters.shus_smart_bedstead.attributes.back_leg_control.id] = process_control_attr_factory(custom_capabilities.movement_control.backLeg),
+        [custom_clusters.shus_smart_bedstead.attributes.back_massage.id] = process_massage_attr_factory(custom_capabilities.massage_control.backStrength),
+        [custom_clusters.shus_smart_bedstead.attributes.leg_massage.id] = process_massage_attr_factory(custom_capabilities.massage_control.legStrength),
+        [custom_clusters.shus_smart_bedstead.attributes.massage_frequency.id] = process_massage_attr_factory(custom_capabilities.massage_control.frequency),
         [custom_clusters.shus_smart_bedstead.attributes.massage_switch.id] = massage_switch_attr_handler,
         [custom_clusters.shus_smart_bedstead.attributes.mode.id] = mode_attr_handler,
         [custom_clusters.shus_smart_bedstead.attributes.night_light.id] = night_light_attr_handler,
@@ -364,15 +295,15 @@ local shus_smart_bedstead = {
       [capabilities.refresh.commands.refresh.NAME] = do_refresh
     },
     [custom_capabilities.movement_control.ID] = {
-      ["backControl"] = movement_control_back_cap_handler,
-      ["legControl"] = movement_control_leg_cap_handler,
-      ["backLegControl"] = movement_control_back_leg_cap_handler
+      ["backControl"] = process_movement_control_cap_factory("backControl","back_control",custom_capabilities.movement_control.back),
+      ["legControl"] = process_movement_control_cap_factory("legControl","leg_control",custom_capabilities.movement_control.leg),
+      ["backLegControl"] = process_movement_control_cap_factory("backLegControl","back_leg_control",custom_capabilities.movement_control.backLeg)
     },
     [custom_capabilities.massage_control.ID] = {
       ["stateControl"] = massage_control_state_cap_handler,
-      ["backStrengthControl"] = massage_control_back_strength_cap_handler,
-      ["legStrengthControl"] = massage_control_leg_strength_cap_handler,
-      ["frequencyControl"] = massage_control_frequency_cap_handler
+      ["backStrengthControl"] = process_massage_control_cap_factory("backStrengthControl","back_massage"),
+      ["legStrengthControl"] = process_massage_control_cap_factory("legStrengthControl","leg_massage"),
+      ["frequencyControl"] = process_massage_control_cap_factory("frequencyControl","massage_frequency")
     },
     [custom_capabilities.mode.ID] = {
       ["stateControl"] = mode_cap_handler
