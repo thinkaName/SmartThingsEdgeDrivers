@@ -2263,6 +2263,11 @@ zigbeeManufacturer:
     manufacturer: Insta GmbH
     model: NEXENTRO Dimming Actuator
     deviceProfileName: on-off-level
+  - id: "LAISIAO/BATH"
+    deviceLabel: 智能浴霸 
+    manufacturer: LAISIAO
+    model: yuba
+    deviceProfileName: switch-smart-bath-heater-laisiao
 zigbeeGeneric:
   - id: "genericSwitch"
     deviceLabel: Zigbee Switch
