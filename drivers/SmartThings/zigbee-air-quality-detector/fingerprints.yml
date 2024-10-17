@@ -1,0 +1,6 @@
+zigbeeManufacturer:
+  - id: "MAILEKE/air_quality_detector"
+    deviceLabel: 空气质量检测仪
+    manufacturer: MAILEKE
+    model: air_quality_detector
+    deviceProfileName: air-quality-detector-maileke

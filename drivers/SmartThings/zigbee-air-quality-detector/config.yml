@@ -1,0 +1,6 @@
+name: 'AIR QUALITY DETECTOR MAILEKE'
+packageKey: 'air-quality-detector-maileke'
+permissions:
+  zigbee: {}
+description: "SmartThings driver for Zigbee air quality detector maileke"
+vendorSupportInformation: "https://support.smartthings.com"
