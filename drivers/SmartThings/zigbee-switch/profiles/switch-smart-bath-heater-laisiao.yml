@@ -47,21 +47,14 @@ components:
     categories:
       - name: Switch
   - id: switch7
-    label: "摆页"
+    label: "干燥"
     capabilities:
       - id: switch
         version: 1
     categories:
       - name: Switch
   - id: switch8
-    label: "一键沐浴"
-    capabilities:
-      - id: switch
-        version: 1
-    categories:
-      - name: Switch
-  - id: switch9
-    label: "干燥"
+    label: "摆页"
     capabilities:
       - id: switch
         version: 1

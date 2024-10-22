@@ -16,15 +16,13 @@ local clusters = require "st.zigbee.zcl.clusters"
 local capabilities = require "st.capabilities"
 local device_management = require "st.zigbee.device_management"
 
+local IlluminanceMeasurement = clusters.IlluminanceMeasurement
 local RelativeHumidity = clusters.RelativeHumidity
 local TemperatureMeasurement = clusters.TemperatureMeasurement
 local PowerConfiguration = clusters.PowerConfiguration
 
 local HEIMAN_TEMP_HUMUDITY_SENSOR_FINGERPRINTS = {
-  { mfr = "Heiman", model = "b467083cfc864f5e826459e5d8ea6079" },
-  { mfr = "HEIMAN", model = "888a434f3cfc47f29ec4a3a03e9fc442" },
-  { mfr = "HEIMAN", model = "HT-EM" },
-  { mfr = "HEIMAN", model = "HT-EF-3.0" }
+  { mfr = "MAILEKE", model = "air" }
 }
 
 local function can_handle_heiman_sensor(opts, driver, device)
@@ -37,20 +35,20 @@ local function can_handle_heiman_sensor(opts, driver, device)
 end
 
 local function do_refresh(driver, device)
-  device:send(RelativeHumidity.attributes.MeasuredValue:read(device):to_endpoint(0x02))
+  device:send(RelativeHumidity.attributes.MeasuredValue:read(device):to_endpoint(0x01))
   device:send(TemperatureMeasurement.attributes.MeasuredValue:read(device))
   device:send(PowerConfiguration.attributes.BatteryPercentageRemaining:read(device))
 end
 
 local function do_configure(driver, device)
-  device:send(device_management.build_bind_request(device, RelativeHumidity.ID, driver.environment_info.hub_zigbee_eui):to_endpoint(0x02))
+  device:send(device_management.build_bind_request(device, RelativeHumidity.ID, driver.environment_info.hub_zigbee_eui):to_endpoint(0x01))
   device:configure()
-  device:send(RelativeHumidity.attributes.MeasuredValue:configure_reporting(device, 30, 3600, 100):to_endpoint(0x02))
+  device:send(RelativeHumidity.attributes.MeasuredValue:configure_reporting(device, 30, 3600, 100):to_endpoint(0x01))
   do_refresh(driver, device)
 end
 
 local heiman_sensor = {
-  NAME = "Heiman Humidity Sensor",
+  NAME = "maileke air quality detector",
   lifecycle_handlers = {
     doConfigure = do_configure
   },

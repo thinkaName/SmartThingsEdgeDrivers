@@ -18,7 +18,7 @@ local defaults = require "st.zigbee.defaults"
 local constants = require "st.zigbee.constants"
 
 --Temperature Measurement
-local zigbee_carbon_monoxide_driver_template = {
+local zigbee_air_quality_detector_template = {
     supported_capabilities = {
         capabilities.carbonMonoxideDetector,
         capabilities.battery,
@@ -26,6 +26,6 @@ local zigbee_carbon_monoxide_driver_template = {
     sub_drivers = { require("maileke") }
 }
 
-defaults.register_for_default_handlers(zigbee_carbon_monoxide_driver_template, zigbee_carbon_monoxide_driver_template.supported_capabilities)
-local zigbee_carbon_monoxide_driver = ZigbeeDriver("zigbee-carbon-monoxide-detector", zigbee_carbon_monoxide_driver_template)
-zigbee_carbon_monoxide_driver:run()
+defaults.register_for_default_handlers(zigbee_air_quality_detector_template, zigbee_air_quality_detector_template.supported_capabilities)
+local zigbee_air_quality_detector_driver = ZigbeeDriver("zigbee-air-quality-detector", zigbee_air_quality_detector_template)
+zigbee_air_quality_detector_driver:run()

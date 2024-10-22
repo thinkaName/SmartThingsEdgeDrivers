@@ -14,19 +14,19 @@ components:
       version: 1
     - id: fineDustHealthConcern 
       version: 1
-    - id: fineDustLevel
+    - id: fineDustSensor
       version: 1  
     - id: veryFineDustHealthConcern  
       version: 1
-    - id: veryFineDustLevel
+    - id: veryFineDustSensor
       version: 1
     - id: dustHealthConcern  
       version: 1
-    - id: dustLevel
+    - id: dustSensor
       version: 1
-    - id: formaldehydeLevel  
+    - id: formaldehydeMeasurement  
       version: 1
-    - id: tvocLevel
+    - id: tvocMeasurement
       version: 1
     - id: firmwareUpdate
       version: 1
