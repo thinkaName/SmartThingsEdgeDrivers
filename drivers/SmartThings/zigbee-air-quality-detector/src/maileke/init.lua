@@ -77,43 +77,43 @@ local unit_strings = {
 
 local function carbonDioxide_attr_handler()
   return function(driver, device, value, zb_rx)
-  log.error("carbonDioxide_attr_handler " )
+  log.error("carbonDioxide_attr_handler " ,value.value)
     --device:emit_event_for_endpoint(device.fingerprinted_endpoint_id, capabilities.dustSensor.fineDustLevel({value = value, unit = unit_strings[target_unit]}))
-    device:emit_event_for_endpoint(zb_rx.address_header.src_endpoint.value, capabilities.carbonDioxideMeasurement.carbonDioxide({value = value}))
+    device:emit_event_for_endpoint(zb_rx.address_header.src_endpoint.value, capabilities.carbonDioxideMeasurement.carbonDioxide({value = value.value, unit = unit_strings[units.PPM]}))
   end
 end
 
 local function measurementHandlerFactory(capability, t_unit)
   return function(driver, device, value, zb_rx)
-  log.error("measurementHandlerFactory " )
-	--[[if capability.NAME == capabilities.relativeHumidityMeasurement.humidity.NAME then
-       device:emit_event_for_endpoint(zb_rx.address_header.src_endpoint.value, capability({value = value}))
+  log.error("measurementHandlerFactory ", value.value )
+	if capability.NAME == capabilities.relativeHumidityMeasurement.humidity.NAME then
+       device:emit_event_for_endpoint(zb_rx.address_header.src_endpoint.value, capability({value = value.value}))
 	else
-	   device:emit_event_for_endpoint(zb_rx.address_header.src_endpoint.value, capability({value = value, unit = t_unit}))
-	end--]]
+	   device:emit_event_for_endpoint(zb_rx.address_header.src_endpoint.value, capability({value = value.value, unit = t_unit}))
+	end
   end
 end
 
 local function pm2_5_attr_handler(cap)
   return function(driver, device, value, zb_rx)
-  log.error("pm2_5_attr_handler " )
-   --[[ if cap.NAME == capabilities.fineDustSensor.fineDustLevel.NAME then
-      device:emit_event_for_endpoint(zb_rx.address_header.src_endpoint.value, cap({value = value, unit = unit_strings[units.MGM3]}))
+  log.error("pm2_5_attr_handler ",value.value )
+    if cap.NAME == capabilities.fineDustSensor.fineDustLevel.NAME then
+      device:emit_event_for_endpoint(zb_rx.address_header.src_endpoint.value, cap({value = value.value, unit = unit_strings[units.MGM3]}))
     elseif cap.NAME == capabilities.dustSensor.fineDustLevel.NAME then
-      device:emit_event_for_endpoint(zb_rx.address_header.src_endpoint.value, cap({value = value, unit = unit_strings[units.MGM3]}))
+      device:emit_event_for_endpoint(zb_rx.address_header.src_endpoint.value, cap({value = value.value, unit = unit_strings[units.MGM3]}))
     elseif cap.NAME == capabilities.veryFineDustSensor.veryFineDustLevel.NAME then
-      device:emit_event_for_endpoint(zb_rx.address_header.src_endpoint.value, cap({value = value, unit = unit_strings[units.MGM3]}))
-    end --]]
+      device:emit_event_for_endpoint(zb_rx.address_header.src_endpoint.value, cap({value = value.value, unit = unit_strings[units.MGM3]}))
+    end 
   end
 end
 
 local function CH2O_attr_handler(cap)
   return function(driver, device, value, zb_rx)
-  log.error("CH2O_attr_handler " )
+  log.error("CH2O_attr_handler ", value.value)
   if cap.NAME == capabilities.formaldehydeMeasurement.formaldehydeLevel.NAME then
-    device:emit_event_for_endpoint(zb_rx.address_header.src_endpoint.value, cap({value = value, unit = unit_strings[units.MGM3]}))
+    device:emit_event_for_endpoint(zb_rx.address_header.src_endpoint.value, cap({value = value.value, unit = unit_strings[units.MGM3]}))
   elseif cap.NAME == capabilities.tvocMeasurement.tvocLevel.NAME then
-    device:emit_event_for_endpoint(zb_rx.address_header.src_endpoint.value, cap({value = value, unit = unit_strings[units.MGM3]}))
+    device:emit_event_for_endpoint(zb_rx.address_header.src_endpoint.value, cap({value = value.value, unit = unit_strings[units.MGM3]}))
   end
   end
 end
