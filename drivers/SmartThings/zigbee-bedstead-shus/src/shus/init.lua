@@ -27,11 +27,15 @@ local FINGERPRINTS = {
 -- #############################
 local function process_control_attr_factory(cmd)
   return function(driver, device, value, zb_rx)
-    if value.value == 0 then
+  --[[  if value.value == 0 then
       device:emit_event(cmd.up())
     elseif value.value == 1 then
       device:emit_event(cmd.down())
     end
+	--]]
+	local event1 = cmd.idle()
+    device:emit_event(event1)
+	
   end
 end
 
