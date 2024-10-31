@@ -6,16 +6,16 @@ components:
         ephemeral: false
       - id: refresh
         ephemeral: false
-      - id: absolutegreen57841.movementControl
+      - id: stse.movementControl
         version: 1
         ephemeral: false
-      - id: absolutegreen57841.massageControl
+      - id: stse.massageControl
         version: 1
         ephemeral: false
-      - id: absolutegreen57841.mode
+      - id: stse.mode
         version: 1
         ephemeral: false
-      - id: absolutegreen57841.nightLight
+      - id: stse.nightLight
         version: 1
         ephemeral: false
     categories:
