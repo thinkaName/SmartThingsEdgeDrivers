@@ -20,7 +20,20 @@ local constants = require "st.zigbee.constants"
 --Temperature Measurement
 local zigbee_air_quality_detector_template = {
     supported_capabilities = {
-        capabilities.carbonMonoxideDetector,
+	    capabilities.temperatureMeasurement,
+        capabilities.relativeHumidityMeasurement,
+		capabilities.illuminanceMeasurement,
+		capabilities.carbonDioxideHealthConcern,
+		capabilities.carbonDioxideMeasurement,
+		capabilities.fineDustHealthConcern,
+		capabilities.fineDustSensor,
+		capabilities.veryFineDustHealthConcern,
+		capabilities.veryFineDustSensor,
+		capabilities.dustHealthConcern,
+		capabilities.fineDustSensor,
+		capabilities.dustSensor,
+		capabilities.formaldehydeMeasurement,
+		capabilities.tvocMeasurement,
         capabilities.battery,
     },
     sub_drivers = { require("maileke") }
