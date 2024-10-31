@@ -6,13 +6,13 @@ components:
         ephemeral: false
       - id: refresh
         ephemeral: false
-      - id: stse.movementControl
+      - id: stse.bedMovementControl
         version: 1
         ephemeral: false
       - id: stse.massageControl
         version: 1
         ephemeral: false
-      - id: stse.mode
+      - id: stse.bedOperatingMode
         version: 1
         ephemeral: false
       - id: stse.nightLight

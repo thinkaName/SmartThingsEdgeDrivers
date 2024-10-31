@@ -15,10 +15,10 @@
 local capabilities = require "st.capabilities"
 
 local custom_capabilities = {
-    movement_control = capabilities["absolutegreen57841.movementControl"],
-    massage_control = capabilities["absolutegreen57841.massageControl"],
-    mode = capabilities["absolutegreen57841.mode"],
-    night_light = capabilities["absolutegreen57841.nightLight"]
+    movement_control = capabilities["stse.bedMovementControl"],
+    massage_control = capabilities["stse.massageControl"],
+    mode = capabilities["stse.bedOperatingMode"],
+    night_light = capabilities["stse.nightLight"]
 }
 
 return custom_capabilities

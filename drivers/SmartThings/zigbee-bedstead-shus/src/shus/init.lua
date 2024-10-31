@@ -224,10 +224,9 @@ local function process_movement_control_cap_factory(cap,attrs,cap_attr)
     --the APP will pop up an error. Therefore, an opposite event needs to be triggered to ensure that
     --the user will not receive an error when continuously triggering the same button
     local event = cap_attr.down()
-    local event1 = cap_attr.up()
+    local event1 = cap_attr.idle()
     if cmd.args[cap] == "up" then
         event = cap_attr.up()
-        event1 = cap_attr.down()
     end
     device:emit_event(event)
     socket.sleep(1)

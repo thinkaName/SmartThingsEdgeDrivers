@@ -22,8 +22,8 @@ local custom_capabilities = require "shus/custom_capabilities"
 
 local shus_bedstead_profile_def = t_utils.get_profile_definition("shus-smart-bedstead.yaml")
 test.add_package_capability("massageControl.yaml")
-test.add_package_capability("mode.yaml")
-test.add_package_capability("movementControl.yaml")
+test.add_package_capability("bedOperatingMode.yaml")
+test.add_package_capability("bedMovementControl.yaml")
 test.add_package_capability("nightLight.yaml")
 
 local PRIVATE_CLUSTER_ID = 0xFCC1
