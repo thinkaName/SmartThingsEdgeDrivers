@@ -17,6 +17,7 @@ local capabilities = require "st.capabilities"
 local device_management = require "st.zigbee.device_management"
 local custom_clusters = require "maileke/custom_clusters"
 local log = require "log"
+local cluster_base = require "st.zigbee.cluster_base"
 
 local IlluminanceMeasurement = clusters.IlluminanceMeasurement
 local RelativeHumidity = clusters.RelativeHumidity
@@ -39,10 +40,28 @@ local function can_handle_maileke_sensor(opts, driver, device)
   return false
 end
 
+local function send_read_attr_request(device, cluster, attr)
+  device:send(
+    cluster_base.read_manufacturer_specific_attribute(
+      device,
+      cluster.id,
+      attr.id,
+      cluster.mfg_specific_code
+    )
+  )
+end
+
 local function do_refresh(driver, device)
   device:send(RelativeHumidity.attributes.MeasuredValue:read(device):to_endpoint(0x01))
   device:send(TemperatureMeasurement.attributes.MeasuredValue:read(device))
   device:send(PowerConfiguration.attributes.BatteryPercentageRemaining:read(device))
+  
+  send_read_attr_request(device, custom_clusters.pm2_5, custom_clusters.pm2_5.attributes.pm2_5)
+  send_read_attr_request(device, custom_clusters.pm2_5, custom_clusters.pm2_5.attributes.pm1_0)
+  send_read_attr_request(device, custom_clusters.pm2_5, custom_clusters.pm2_5.attributes.pm10)
+  send_read_attr_request(device, custom_clusters.CH2O, custom_clusters.CH2O.attributes.CH2O)
+  send_read_attr_request(device, custom_clusters.CH2O, custom_clusters.CH2O.attributes.tvoc)
+  send_read_attr_request(device, custom_clusters.carbonDioxide, custom_clusters.carbonDioxide.attributes.measured_value)
 end
 
 local function do_configure(driver, device)
@@ -52,34 +71,18 @@ local function do_configure(driver, device)
   do_refresh(driver, device)
 end
 
-local units = {
-  PPM = 0,
-  PPB = 1,
-  PPT = 2,
-  MGM3 = 3,
-  UGM3 = 4,
-  NGM3 = 5,
-  PM3 = 6,
-  BQM3 = 7,
-  PCIL = 0xFF
-}
-
-local unit_strings = {
-  [units.PPM] = "ppm",
-  [units.PPB] = "ppb",
-  [units.PPT] = "ppt",
-  [units.MGM3] = "mg/m^3",
-  [units.NGM3] = "ng/m^3",
-  [units.UGM3] = "μg/m^3",
-  [units.BQM3] = "Bq/m^3",
-  [units.PCIL] = "pCi/L"
-}
 
 local function carbonDioxide_attr_handler()
   return function(driver, device, value, zb_rx)
   log.error("carbonDioxide_attr_handler " ,value.value)
-    --device:emit_event_for_endpoint(device.fingerprinted_endpoint_id, capabilities.dustSensor.fineDustLevel({value = value, unit = unit_strings[target_unit]}))
-    device:emit_event_for_endpoint(zb_rx.address_header.src_endpoint.value, capabilities.carbonDioxideMeasurement.carbonDioxide({value = value.value, unit = unit_strings[units.PPM]}))
+	local level = "unhealthy"
+    device:emit_event_for_endpoint(zb_rx.address_header.src_endpoint.value, capabilities.carbonDioxideMeasurement.carbonDioxide({value = value.value, unit = "ppm"}))
+	if value.value <= 1500 then
+	  level = "good"
+	elseif value.value >= 1501 and value.value <= 2500 then
+	  level = "moderate"
+	end
+	device:emit_event_for_endpoint(zb_rx.address_header.src_endpoint.value, capabilities.carbonDioxideHealthConcern.carbonDioxideHealthConcern({value = level}))
   end
 end
 
@@ -94,27 +97,25 @@ local function measurementHandlerFactory(capability, t_unit)
   end
 end
 
-local function pm2_5_attr_handler(cap)
+local function pm2_5_attr_handler(cap,Concern,good,bad)
   return function(driver, device, value, zb_rx)
   log.error("pm2_5_attr_handler ",value.value )
-    if cap.NAME == capabilities.fineDustSensor.fineDustLevel.NAME then
-      device:emit_event_for_endpoint(zb_rx.address_header.src_endpoint.value, cap({value = value.value, unit = unit_strings[units.MGM3]}))
-    elseif cap.NAME == capabilities.dustSensor.fineDustLevel.NAME then
-      device:emit_event_for_endpoint(zb_rx.address_header.src_endpoint.value, cap({value = value.value, unit = unit_strings[units.MGM3]}))
-    elseif cap.NAME == capabilities.veryFineDustSensor.veryFineDustLevel.NAME then
-      device:emit_event_for_endpoint(zb_rx.address_header.src_endpoint.value, cap({value = value.value, unit = unit_strings[units.MGM3]}))
-    end 
+    local level = "unhealthy"
+	
+    device:emit_event_for_endpoint(zb_rx.address_header.src_endpoint.value, cap({value = value.value}))
+	if value.value <= good then
+	  level = "good"
+	elseif value.value > good and value.value < bad then
+	  level = "moderate"
+	end
+	device:emit_event_for_endpoint(zb_rx.address_header.src_endpoint.value, Concern({value = level}))
   end
 end
 
-local function CH2O_attr_handler(cap)
+local function CH2O_attr_handler(cap, t_unit)
   return function(driver, device, value, zb_rx)
   log.error("CH2O_attr_handler ", value.value)
-  if cap.NAME == capabilities.formaldehydeMeasurement.formaldehydeLevel.NAME then
-    device:emit_event_for_endpoint(zb_rx.address_header.src_endpoint.value, cap({value = value.value, unit = unit_strings[units.MGM3]}))
-  elseif cap.NAME == capabilities.tvocMeasurement.tvocLevel.NAME then
-    device:emit_event_for_endpoint(zb_rx.address_header.src_endpoint.value, cap({value = value.value, unit = unit_strings[units.MGM3]}))
-  end
+    device:emit_event_for_endpoint(zb_rx.address_header.src_endpoint.value, cap({value = value.value, unit = t_unit}))
   end
 end
 
@@ -139,13 +140,13 @@ local maileke_sensor = {
         [custom_clusters.carbonDioxide.attributes.measured_value.id] = carbonDioxide_attr_handler()
       },
 	  [custom_clusters.pm2_5.id] = {
-        [custom_clusters.pm2_5.attributes.pm2_5.id] = pm2_5_attr_handler(capabilities.fineDustSensor.fineDustLevel),
-        [custom_clusters.pm2_5.attributes.pm1_0.id] = pm2_5_attr_handler(capabilities.dustSensor.fineDustLevel),
-        [custom_clusters.pm2_5.attributes.pm10.id] = pm2_5_attr_handler(capabilities.veryFineDustSensor.veryFineDustLevel)
+        [custom_clusters.pm2_5.attributes.pm2_5.id] = pm2_5_attr_handler(capabilities.fineDustSensor.fineDustLevel,capabilities.fineDustHealthConcern.fineDustHealthConcern,75,115),
+        [custom_clusters.pm2_5.attributes.pm1_0.id] = pm2_5_attr_handler(capabilities.veryFineDustSensor.veryFineDustLevel,capabilities.veryFineDustHealthConcern.veryFineDustHealthConcern,70,100),
+        [custom_clusters.pm2_5.attributes.pm10.id] = pm2_5_attr_handler(capabilities.dustSensor.dustLevel,capabilities.dustHealthConcern.dustHealthConcern,100,150)
       },
 	  [custom_clusters.CH2O.id] = {
-        [custom_clusters.CH2O.attributes.CH2O.id] = CH2O_attr_handler(capabilities.formaldehydeMeasurement.formaldehydeLevel),
-        [custom_clusters.CH2O.attributes.tvoc.id] = CH2O_attr_handler(capabilities.tvocMeasurement.tvocLevel)
+        [custom_clusters.CH2O.attributes.CH2O.id] = CH2O_attr_handler(capabilities.formaldehydeMeasurement.formaldehydeLevel,"mg/m^3"),
+        [custom_clusters.CH2O.attributes.tvoc.id] = CH2O_attr_handler(capabilities.tvocMeasurement.tvocLevel,"ug/m3")
       }
     }
   },
