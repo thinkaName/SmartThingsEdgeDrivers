@@ -21,7 +21,7 @@ local custom_clusters = {
     attributes = {
       measured_value = {
         id = 0x0000,
-        value_type = data_types.Float,
+        value_type = data_types.SinglePrecisionFloat,
       }
     }
   },
