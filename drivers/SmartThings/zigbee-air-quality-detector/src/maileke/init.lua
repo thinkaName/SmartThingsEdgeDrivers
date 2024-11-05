@@ -65,10 +65,11 @@ local function do_refresh(driver, device)
 end
 
 local function do_configure(driver, device)
-  device:send(device_management.build_bind_request(device, RelativeHumidity.ID, driver.environment_info.hub_zigbee_eui):to_endpoint(0x01))
-  device:configure()
-  device:send(RelativeHumidity.attributes.MeasuredValue:configure_reporting(device, 30, 3600, 100):to_endpoint(0x01))
+  --device:send(device_management.build_bind_request(device, RelativeHumidity.ID, driver.environment_info.hub_zigbee_eui):to_endpoint(0x01))
+  --device:configure()
+  device:send(PowerConfiguration.attributes.BatteryPercentageRemaining:configure_reporting(device, 30, 3600, 100):to_endpoint(0x01))
   do_refresh(driver, device)
+  
 end
 
 
