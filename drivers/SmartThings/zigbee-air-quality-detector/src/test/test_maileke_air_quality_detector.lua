@@ -49,6 +49,33 @@ local function test_init()
 end
 test.set_test_init_function(test_init)
 
+test.register_coroutine_test(
+  "capability - refresh",
+  function()
+    test.socket.capability:__queue_receive({ mock_device.id,
+      { capability = "refresh", component = "main", command = "refresh", args = {} } })
+    local read_RelativeHumidity_messge = clusters.RelativeHumidity.attributes.MeasuredValue:read(mock_device)
+	local read_TemperatureMeasurement_messge = clusters.TemperatureMeasurement.attributes.MeasuredValue:read(mock_device)
+	local read_PowerConfiguration_messge = clusters.PowerConfiguration.attributes.BatteryPercentageRemaining:read(mock_device)
+    local read_pm2_5_messge = cluster_base.read_manufacturer_specific_attribute(mock_device, 0x042A, 0x0000, MFG_CODE)
+    local read_pm1_0_messge = cluster_base.read_manufacturer_specific_attribute(mock_device, 0x042A, 0x0001, MFG_CODE)
+    local read_pm10_messge = cluster_base.read_manufacturer_specific_attribute(mock_device, 0x042A, 0x0002, MFG_CODE)
+	local read_ch2o_messge = cluster_base.read_manufacturer_specific_attribute(mock_device, 0x042B, 0x0000, MFG_CODE)
+	local read_tvoc_messge = cluster_base.read_manufacturer_specific_attribute(mock_device, 0x042B, 0x0001, MFG_CODE)
+    local read_carbonDioxide_messge = cluster_base.read_manufacturer_specific_attribute(mock_device, 0x040D, 0x0000, MFG_CODE)
+
+   test.socket.zigbee:__expect_send({mock_device.id, read_RelativeHumidity_messge})
+   test.socket.zigbee:__expect_send({mock_device.id, read_TemperatureMeasurement_messge})
+   test.socket.zigbee:__expect_send({mock_device.id, read_PowerConfiguration_messge})
+    test.socket.zigbee:__expect_send({mock_device.id, read_pm2_5_messge})
+    test.socket.zigbee:__expect_send({mock_device.id, read_pm1_0_messge})
+    test.socket.zigbee:__expect_send({mock_device.id, read_pm10_messge})
+    test.socket.zigbee:__expect_send({mock_device.id, read_ch2o_messge})
+    test.socket.zigbee:__expect_send({mock_device.id, read_tvoc_messge})
+    test.socket.zigbee:__expect_send({mock_device.id, read_carbonDioxide_messge})
+  end
+)
+
 test.register_message_test(
   "Relative humidity reports should generate correct messages",
   {
@@ -126,34 +153,9 @@ test.register_coroutine_test(
   end
 )
 
---[[
-test.register_coroutine_test(
-  "capability - refresh",
-  function()
-    test.socket.capability:__queue_receive({ mock_device.id,
-      { capability = "refresh", component = "main", command = "refresh", args = {} } })
-    local read_RelativeHumidity_messge = cluster_base.read_attribute(mock_device, 0x0405, 0x0000)
-	local read_TemperatureMeasurement_messge = cluster_base.read_attribute(mock_device, 0x0402, 0x0000)
-	local read_PowerConfiguration_messge = cluster_base.read_attribute(mock_device, 0x0002, 0x0021)
-    local read_pm2_5_messge = cluster_base.read_manufacturer_specific_attribute(mock_device, 0x042A, 0x0000, MFG_CODE)
-    local read_pm1_0_messge = cluster_base.read_manufacturer_specific_attribute(mock_device, 0x042A, 0x0001, MFG_CODE)
-    local read_pm10_messge = cluster_base.read_manufacturer_specific_attribute(mock_device, 0x042A, 0x0002, MFG_CODE)
-	local read_ch2o_messge = cluster_base.read_manufacturer_specific_attribute(mock_device, 0x042B, 0x0000, MFG_CODE)
-	local read_tvoc_messge = cluster_base.read_manufacturer_specific_attribute(mock_device, 0x042B, 0x0001, MFG_CODE)
-    local read_carbonDioxide_messge = cluster_base.read_manufacturer_specific_attribute(mock_device, 0x040D, 0x0000, MFG_CODE)
 
-   test.socket.zigbee:__expect_send({mock_device.id, read_RelativeHumidity_messge})
-   test.socket.zigbee:__expect_send({mock_device.id, read_TemperatureMeasurement_messge})
-   test.socket.zigbee:__expect_send({mock_device.id, read_PowerConfiguration_messge})
-    test.socket.zigbee:__expect_send({mock_device.id, read_pm2_5_messge})
-    test.socket.zigbee:__expect_send({mock_device.id, read_pm1_0_messge})
-    test.socket.zigbee:__expect_send({mock_device.id, read_pm10_messge})
-    test.socket.zigbee:__expect_send({mock_device.id, read_ch2o_messge})
-    test.socket.zigbee:__expect_send({mock_device.id, read_tvoc_messge})
-    test.socket.zigbee:__expect_send({mock_device.id, read_carbonDioxide_messge})
-  end
-)
---]]
+
+
 
 test.register_coroutine_test(
   "Device reported carbonDioxide and driver emit carbonDioxide and carbonDioxideHealthConcern",
