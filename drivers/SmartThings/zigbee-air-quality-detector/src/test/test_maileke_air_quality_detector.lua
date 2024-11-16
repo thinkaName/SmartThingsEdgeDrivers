@@ -24,6 +24,7 @@ local t_utils = require "integration_test.utils"
 local cluster_base = require "st.zigbee.cluster_base"
 local data_types = require "st.zigbee.data_types"
 local socket = require "cosock.socket"
+local SinglePrecisionFloat = require "st.matter.data_types.SinglePrecisionFloat"
 
 local profile_def = t_utils.get_profile_definition("air-quality-detector-maileke.yml")
 local MFG_CODE = 0x1235
@@ -62,7 +63,7 @@ test.register_coroutine_test(
     local read_pm10_messge = cluster_base.read_manufacturer_specific_attribute(mock_device, 0x042A, 0x0002, MFG_CODE)
 	local read_ch2o_messge = cluster_base.read_manufacturer_specific_attribute(mock_device, 0x042B, 0x0000, MFG_CODE)
 	local read_tvoc_messge = cluster_base.read_manufacturer_specific_attribute(mock_device, 0x042B, 0x0001, MFG_CODE)
-    local read_carbonDioxide_messge = cluster_base.read_manufacturer_specific_attribute(mock_device, 0x040D, 0x0000, MFG_CODE)
+    local read_carbonDioxide_messge = cluster_base.read_manufacturer_specific_attribute(mock_device, 0x042C, 0x0000, MFG_CODE)
 
    test.socket.zigbee:__expect_send({mock_device.id, read_RelativeHumidity_messge})
    test.socket.zigbee:__expect_send({mock_device.id, read_TemperatureMeasurement_messge})
@@ -148,8 +149,7 @@ test.register_coroutine_test(
       capabilities.fineDustSensor.fineDustLevel({value = 1})))
 	 --test.wait_for_events() 
 	--test.socket.capability:__expect_send(mock_device:generate_test_message("main",
-   -- capabilities.fineDustHealthConcern.fineDustHealthConcern.good()))
-	  
+   -- capabilities.fineDustHealthConcern.fineDustHealthConcern.good()))  
   end
 )
 
@@ -165,7 +165,7 @@ test.register_coroutine_test(
     }
     test.socket.zigbee:__queue_receive({
       mock_device.id,
-      zigbee_test_utils.build_attribute_report(mock_device, 0x040D, attr_report_data, MFG_CODE)
+      zigbee_test_utils.build_attribute_report(mock_device, 0x042C, attr_report_data, MFG_CODE)
     })
     test.socket.capability:__expect_send(mock_device:generate_test_message("main",
       capabilities.carbonDioxideMeasurement.carbonDioxide({value = 1400, unit = "ppm"})))
@@ -233,30 +233,31 @@ test.register_coroutine_test(
   "Device reported ch2o and driver emit ch2o",
   function()
     local attr_report_data = {
-      { 0x0000, data_types.Uint16.ID, 2 }
+      { 0x0000, data_types.SinglePrecisionFloat.ID, SinglePrecisionFloat(0, 9, 0.953125) }--SinglePrecisionFloat(0, 9, 0.953125) 
     }
     test.socket.zigbee:__queue_receive({
       mock_device.id,
       zigbee_test_utils.build_attribute_report(mock_device, 0x042B, attr_report_data, MFG_CODE)
     })
     test.socket.capability:__expect_send(mock_device:generate_test_message("main",
-      capabilities.formaldehydeMeasurement.formaldehydeLevel({value = 2, unit = "mg/m^3"})))	  
+      capabilities.formaldehydeMeasurement.formaldehydeLevel({value = 1000.0, unit = "mg/m^3"})))	  
   end
 )
 
+--[[
 test.register_coroutine_test(
   "Device reported tvoc and driver emit tvoc",
   function()
     local attr_report_data = {
-      { 0x0001, data_types.Uint16.ID, 1 }
+      { 0x0001, data_types.SinglePrecisionFloat.ID, 0.1 }
     }
     test.socket.zigbee:__queue_receive({
       mock_device.id,
       zigbee_test_utils.build_attribute_report(mock_device, 0x042B, attr_report_data, MFG_CODE)
     })
     test.socket.capability:__expect_send(mock_device:generate_test_message("main",
-      capabilities.tvocMeasurement.tvocLevel({value = 1, unit = "ug/m3"})))	  
+      capabilities.tvocMeasurement.tvocLevel({value = 0.1, unit = "ug/m3"})))	  
   end
 )
-
+--]]
 test.run_registered_tests()

@@ -16,12 +16,12 @@ local data_types = require "st.zigbee.data_types"
 
 local custom_clusters = {
   carbonDioxide = {
-    id = 0x040D,
+    id = 0x042C,
     mfg_specific_code = 0x1235,
     attributes = {
       measured_value = {
         id = 0x0000,
-        value_type = data_types.SinglePrecisionFloat,
+        value_type = data_types.Uint16,
       }
     }
   },
@@ -49,11 +49,11 @@ local custom_clusters = {
     attributes = {
       CH2O = {
         id = 0x0000,
-        value_type = data_types.Uint16,
+        value_type = data_types.SinglePrecisionFloat,
       },
 	  tvoc = {
         id = 0x0001,
-        value_type = data_types.Uint16,
+        value_type = data_types.SinglePrecisionFloat,
       }
 	  
     }
