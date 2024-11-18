@@ -19,12 +19,11 @@ local custom_clusters = require "maileke/custom_clusters"
 local log = require "log"
 local cluster_base = require "st.zigbee.cluster_base"
 
-local IlluminanceMeasurement = clusters.IlluminanceMeasurement
 local RelativeHumidity = clusters.RelativeHumidity
 local TemperatureMeasurement = clusters.TemperatureMeasurement
 
 local MAILEKE_SENSOR_FINGERPRINTS = {
-  { mfr = "MAILEKE", model = "air" }
+  { mfr = "MAILEKE", model = "PMT1006S-SGM-ZTN" }
 }
 
 local function can_handle_maileke_sensor(opts, driver, device)
