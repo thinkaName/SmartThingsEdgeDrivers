@@ -57,7 +57,6 @@ test.register_coroutine_test(
       { capability = "refresh", component = "main", command = "refresh", args = {} } })
     local read_RelativeHumidity_messge = clusters.RelativeHumidity.attributes.MeasuredValue:read(mock_device)
 	local read_TemperatureMeasurement_messge = clusters.TemperatureMeasurement.attributes.MeasuredValue:read(mock_device)
-	local read_PowerConfiguration_messge = clusters.PowerConfiguration.attributes.BatteryPercentageRemaining:read(mock_device)
     local read_pm2_5_messge = cluster_base.read_manufacturer_specific_attribute(mock_device, 0x042A, 0x0000, MFG_CODE)
     local read_pm1_0_messge = cluster_base.read_manufacturer_specific_attribute(mock_device, 0x042A, 0x0001, MFG_CODE)
     local read_pm10_messge = cluster_base.read_manufacturer_specific_attribute(mock_device, 0x042A, 0x0002, MFG_CODE)
@@ -67,7 +66,6 @@ test.register_coroutine_test(
 
    test.socket.zigbee:__expect_send({mock_device.id, read_RelativeHumidity_messge})
    test.socket.zigbee:__expect_send({mock_device.id, read_TemperatureMeasurement_messge})
-   test.socket.zigbee:__expect_send({mock_device.id, read_PowerConfiguration_messge})
     test.socket.zigbee:__expect_send({mock_device.id, read_pm2_5_messge})
     test.socket.zigbee:__expect_send({mock_device.id, read_pm1_0_messge})
     test.socket.zigbee:__expect_send({mock_device.id, read_pm10_messge})
@@ -133,7 +131,6 @@ test.register_message_test(
     }
   }
 )
-
 	
 test.register_coroutine_test(
   "Device reported pm2.5 and driver emit pm2.5 and fineDustHealthConcern",
@@ -148,14 +145,10 @@ test.register_coroutine_test(
     test.socket.capability:__expect_send(mock_device:generate_test_message("main",
       capabilities.fineDustSensor.fineDustLevel({value = 1})))
 	 --test.wait_for_events() 
-	--test.socket.capability:__expect_send(mock_device:generate_test_message("main",
-   -- capabilities.fineDustHealthConcern.fineDustHealthConcern.good()))  
+	test.socket.capability:__expect_send(mock_device:generate_test_message("main",
+    capabilities.fineDustHealthConcern.fineDustHealthConcern.good()))  
   end
 )
-
-
-
-
 
 test.register_coroutine_test(
   "Device reported carbonDioxide and driver emit carbonDioxide and carbonDioxideHealthConcern",
@@ -188,8 +181,8 @@ test.register_coroutine_test(
     test.socket.capability:__expect_send(mock_device:generate_test_message("main",
       capabilities.fineDustSensor.fineDustLevel({value = 74 })))
 	  
-	--test.socket.capability:__expect_send(mock_device:generate_test_message("main",
-     -- capabilities.fineDustHealthConcern.fineDustHealthConcern({value = "good"})))
+	test.socket.capability:__expect_send(mock_device:generate_test_message("main",
+     capabilities.fineDustHealthConcern.fineDustHealthConcern({value = "good"})))
   end
 )
 
@@ -206,8 +199,8 @@ test.register_coroutine_test(
     test.socket.capability:__expect_send(mock_device:generate_test_message("main",
       capabilities.veryFineDustSensor.veryFineDustLevel({value = 74 })))
 	  
-	--test.socket.capability:__expect_send(mock_device:generate_test_message("main",
-    --  capabilities.veryFineDustHealthConcern.veryFineDustHealthConcern({value = "good"})))
+	test.socket.capability:__expect_send(mock_device:generate_test_message("main",
+      capabilities.veryFineDustHealthConcern.veryFineDustHealthConcern({value = "good"})))
   end
 )
 
@@ -224,8 +217,8 @@ test.register_coroutine_test(
     test.socket.capability:__expect_send(mock_device:generate_test_message("main",
       capabilities.dustSensor.dustLevel({value = 74 })))
 	 
-	--test.socket.capability:__expect_send(mock_device:generate_test_message("main",
-      --capabilities.dustHealthConcern.dustHealthConcern({value = "good"})))
+	test.socket.capability:__expect_send(mock_device:generate_test_message("main",
+      capabilities.dustHealthConcern.dustHealthConcern({value = "good"})))
   end
 )
 

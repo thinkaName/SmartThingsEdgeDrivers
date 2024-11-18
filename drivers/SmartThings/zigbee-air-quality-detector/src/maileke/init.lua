@@ -23,10 +23,6 @@ local IlluminanceMeasurement = clusters.IlluminanceMeasurement
 local RelativeHumidity = clusters.RelativeHumidity
 local TemperatureMeasurement = clusters.TemperatureMeasurement
 
-
-
-local PowerConfiguration = clusters.PowerConfiguration
-
 local MAILEKE_SENSOR_FINGERPRINTS = {
   { mfr = "MAILEKE", model = "air" }
 }
@@ -54,7 +50,6 @@ end
 local function do_refresh(driver, device)
   device:send(RelativeHumidity.attributes.MeasuredValue:read(device):to_endpoint(0x01))
   device:send(TemperatureMeasurement.attributes.MeasuredValue:read(device))
-  device:send(PowerConfiguration.attributes.BatteryPercentageRemaining:read(device))
   
   send_read_attr_request(device, custom_clusters.pm2_5, custom_clusters.pm2_5.attributes.pm2_5)
   send_read_attr_request(device, custom_clusters.pm2_5, custom_clusters.pm2_5.attributes.pm1_0)
@@ -63,15 +58,6 @@ local function do_refresh(driver, device)
   send_read_attr_request(device, custom_clusters.CH2O, custom_clusters.CH2O.attributes.tvoc)
   send_read_attr_request(device, custom_clusters.carbonDioxide, custom_clusters.carbonDioxide.attributes.measured_value)
 end
-
-local function do_configure(driver, device)
-  --device:send(device_management.build_bind_request(device, RelativeHumidity.ID, driver.environment_info.hub_zigbee_eui):to_endpoint(0x01))
-  --device:configure()
-  device:send(PowerConfiguration.attributes.BatteryPercentageRemaining:configure_reporting(device, 30, 3600, 100):to_endpoint(0x01))
-  do_refresh(driver, device)
-  
-end
-
 
 local function carbonDioxide_attr_handler()
   return function(driver, device, value, zb_rx)
@@ -122,21 +108,8 @@ end
 
 local maileke_sensor = {
   NAME = "maileke air quality detector",
-  lifecycle_handlers = {
-    doConfigure = do_configure
-  },
   zigbee_handlers = {
     attr = {
---[[	  [clusters.TemperatureMeasurement.ID] = {
-        [clusters.TemperatureMeasurement.attributes.MeasuredValue.ID] = measurementHandlerFactory(capabilities.temperatureMeasurement.temperature,"C")
-      },
-	  [clusters.RelativeHumidity.ID] = {
-        [clusters.RelativeHumidity.attributes.MeasuredValue.ID] = measurementHandlerFactory(capabilities.relativeHumidityMeasurement.humidity,"null")
-      },
-	  [clusters.IlluminanceMeasurement.ID] = {
-        [clusters.IlluminanceMeasurement.attributes.MeasuredValue.ID] = measurementHandlerFactory(capabilities.illuminanceMeasurement.illuminance,"lux")
-      },
-	  --]]
       [custom_clusters.carbonDioxide.id] = {
         [custom_clusters.carbonDioxide.attributes.measured_value.id] = carbonDioxide_attr_handler()
       },
