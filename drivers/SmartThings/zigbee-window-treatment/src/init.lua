@@ -26,7 +26,9 @@ local zigbee_window_treatment_driver_template = {
     capabilities.windowShadePreset,
     capabilities.windowShadeLevel,
     capabilities.powerSource,
-    capabilities.battery
+    capabilities.battery,
+	capabilities.mode,
+	capabilities.hardwareFault
   },
   sub_drivers = {
     require("vimar"),
@@ -38,7 +40,8 @@ local zigbee_window_treatment_driver_template = {
     require("axis"),
     require("yoolax"),
     require("hanssem"),
-    require("screen-innovations")},
+    require("screen-innovations"),
+	require("VIVIDSTORM")},
   lifecycle_handlers = {
     added = added_handler
   }

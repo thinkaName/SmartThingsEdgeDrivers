@@ -1,0 +1,17 @@
+name: window-treatment-profile-screen-VIVIDSTORM
+components:
+- id: main
+  capabilities:
+  - id: windowShade
+    version: 1
+  - id: mode
+    version: 1
+  - id: hardwareFault
+    version: 1
+  - id: firmwareUpdate
+    version: 1
+  - id: refresh
+    version: 1
+  categories:
+  - name: Blind
+
