@@ -1,4 +1,4 @@
--- Copyright 2022 SmartThings
+-- Copyright 2025 SmartThings
 --
 -- Licensed under the Apache License, Version 2.0 (the "License");
 -- you may not use this file except in compliance with the License.
@@ -12,13 +12,12 @@
 -- See the License for the specific language governing permissions and
 -- limitations under the License.
 
-local capabilities = require "st.capabilities"
-local utils = require "st.utils"
-local window_preset_defaults = require "st.zigbee.defaults.windowShadePreset_defaults"
 local zcl_clusters = require "st.zigbee.zcl.clusters"
+local capabilities = require "st.capabilities"
+local custom_clusters = require "VIVIDSTORM/custom_clusters"
+local cluster_base = require "st.zigbee.cluster_base"
 local WindowCovering = zcl_clusters.WindowCovering
-
-local GLYDEA_MOVE_THRESHOLD = 3
+local log = require "log"
 
 local ZIGBEE_WINDOW_SHADE_FINGERPRINTS = {
     { mfr = "VIVIDSTORM", model = "VWSDSTUST120H" }
@@ -34,29 +33,92 @@ local is_zigbee_window_shade = function(opts, driver, device)
   return false
 end
 
+local function send_read_attr_request(device, cluster, attr)
+  device:send(
+    cluster_base.read_manufacturer_specific_attribute(
+      device,
+      cluster.id,
+      attr.id,
+      cluster.mfg_specific_code
+    )
+  )
+end
+
+local function mode_attr_handler(driver, device, value, zb_rx)
+  if value.value == 0 then
+    device:emit_event(capabilities.mode.mode("Set upper limit"))
+  elseif value.value == 1 then
+    device:emit_event(capabilities.mode.mode("Delete all limits"))
+  end
+end
+
+local function hardwareFault_attr_handler(driver, device, value, zb_rx)
+  if value.value == 1 then
+    device:emit_event(capabilities.hardwareFault.hardwareFault.detected())
+  elseif value.value == 0 then
+    device:emit_event(capabilities.hardwareFault.hardwareFault.clear())
+  end
+end
+
+local function capabilities_mode_handler(driver, device, command)
+  if command.args.mode == "Set upper limit" then
+	device:send(
+      cluster_base.write_manufacturer_specific_attribute(
+        device,
+        custom_clusters.motor.id,
+        custom_clusters.motor.attributes.mode_value.id,
+        custom_clusters.motor.mfg_specific_code,
+        custom_clusters.motor.attributes.mode_value.value_type,
+        0
+      )
+    )
+  elseif command.args.mode == "Delete all limits" then
+    device:send(
+      cluster_base.write_manufacturer_specific_attribute(
+        device,
+        custom_clusters.motor.id,
+        custom_clusters.motor.attributes.mode_value.id,
+        custom_clusters.motor.mfg_specific_code,
+        custom_clusters.motor.attributes.mode_value.value_type,
+        1
+      )
+    )
+	end
+end
+
 local function do_refresh(driver, device)
+  device:send(WindowCovering.attributes.CurrentPositionLiftPercentage:read(device):to_endpoint(0x01))
+  send_read_attr_request(device, custom_clusters.motor, custom_clusters.motor.attributes.mode_value)
+  send_read_attr_request(device, custom_clusters.motor, custom_clusters.motor.attributes.hardwareFault)
 end
 
 local function added_handler(self, device)
   device:emit_event(capabilities.mode.supportedModes({"Set upper limit", "Delete all limits"}))
+  device:emit_event(capabilities.mode.mode("Set upper limit"))
   do_refresh()
 end
 
 local somfy_handler = {
   NAME = "VWSDSTUST120H Device Handler",
+  supported_capabilities = {
+    capabilities.refresh
+  },
   lifecycle_handlers = {
     added = added_handler
   },
   capability_handlers = {
+    [capabilities.refresh.ID] = {
+      [capabilities.refresh.commands.refresh.NAME] = do_refresh
+    },
     [capabilities.mode.ID] = {
-      [capabilities.mode.commands.setShadeLevel.NAME] = window_shade_level_cmd
+      [capabilities.mode.commands.setMode.NAME] = capabilities_mode_handler
     },
   },
   zigbee_handlers = {
     attr = {
-      [WindowCovering.ID] = {
-        [WindowCovering.attributes.CurrentPositionLiftPercentage.ID] = current_position_attr_handler,
-        [WindowCovering.attributes.PhysicalClosedLimitLift.ID] = movement_ended_handler
+      [custom_clusters.motor.id] = {
+        [custom_clusters.motor.attributes.mode_value.id] = mode_attr_handler,
+        [custom_clusters.motor.attributes.hardwareFault.id] = hardwareFault_attr_handler
       }
     }
   },
