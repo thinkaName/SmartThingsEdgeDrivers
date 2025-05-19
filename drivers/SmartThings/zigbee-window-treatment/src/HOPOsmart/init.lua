@@ -14,13 +14,13 @@
 
 local zcl_clusters = require "st.zigbee.zcl.clusters"
 local capabilities = require "st.capabilities"
-local custom_clusters = require "VIVIDSTORM/custom_clusters"
+local custom_clusters = require "HOPOsmart/custom_clusters"
 local cluster_base = require "st.zigbee.cluster_base"
 local WindowCovering = zcl_clusters.WindowCovering
 local log = require "log"
 
 local ZIGBEE_WINDOW_SHADE_FINGERPRINTS = {
-    { mfr = "VIVIDSTORM", model = "VWSDSTUST120H" }
+    { mfr = "HOPOsmart", model = "HOPOsmart" }
 }
 
 
@@ -44,24 +44,19 @@ local function send_read_attr_request(device, cluster, attr)
   )
 end
 
+local mode_value = {"停止","平开","悬开","关闭"}
+
 local function mode_attr_handler(driver, device, value, zb_rx)
-  if value.value == 0 then
-    device:emit_event(capabilities.mode.mode("Set upper limit"))
-  elseif value.value == 1 then
-    device:emit_event(capabilities.mode.mode("Delete all limits"))
+  local mode = value.value+1
+  if mode > 4 then
+    return
   end
+  device:emit_event(capabilities.mode.mode(mode_value[mode]))
 end
 
-local function hardwareFault_attr_handler(driver, device, value, zb_rx)
-  if value.value == 1 then
-    device:emit_event(capabilities.hardwareFault.hardwareFault.detected())
-  elseif value.value == 0 then
-    device:emit_event(capabilities.hardwareFault.hardwareFault.clear())
-  end
-end
 
 local function capabilities_mode_handler(driver, device, command)
-  if command.args.mode == "Set upper limit" then
+  if command.args.mode == "停止" then
 	device:send(
       cluster_base.write_manufacturer_specific_attribute(
         device,
@@ -72,7 +67,7 @@ local function capabilities_mode_handler(driver, device, command)
         0
       )
     )
-  elseif command.args.mode == "Delete all limits" then
+  elseif command.args.mode == "平开" then
     device:send(
       cluster_base.write_manufacturer_specific_attribute(
         device,
@@ -83,23 +78,43 @@ local function capabilities_mode_handler(driver, device, command)
         1
       )
     )
+	elseif command.args.mode == "悬开" then
+    device:send(
+      cluster_base.write_manufacturer_specific_attribute(
+        device,
+        custom_clusters.motor.id,
+        custom_clusters.motor.attributes.mode_value.id,
+        custom_clusters.motor.mfg_specific_code,
+        custom_clusters.motor.attributes.mode_value.value_type,
+        2
+      )
+    )
+	elseif command.args.mode == "关闭" then
+    device:send(
+      cluster_base.write_manufacturer_specific_attribute(
+        device,
+        custom_clusters.motor.id,
+        custom_clusters.motor.attributes.mode_value.id,
+        custom_clusters.motor.mfg_specific_code,
+        custom_clusters.motor.attributes.mode_value.value_type,
+        3
+      )
+    )
 	end
 end
 
 local function do_refresh(driver, device)
-  device:send(WindowCovering.attributes.CurrentPositionLiftPercentage:read(device):to_endpoint(0x01))
   send_read_attr_request(device, custom_clusters.motor, custom_clusters.motor.attributes.mode_value)
-  send_read_attr_request(device, custom_clusters.motor, custom_clusters.motor.attributes.hardwareFault)
 end
 
 local function added_handler(self, device)
-  device:emit_event(capabilities.mode.supportedModes({"Set upper limit", "Delete all limits"}))
-  device:emit_event(capabilities.mode.mode("Set upper limit"))
+  device:emit_event(capabilities.mode.supportedModes({"停止", "平开", "悬开", "关闭"}))
+  device:emit_event(capabilities.mode.mode("停止"))
   do_refresh()
 end
 
-local somfy_handler = {
-  NAME = "VWSDSTUST120H Device Handler",
+local HOPOsmart_handler = {
+  NAME = "HOPOsmart Device Handler",
   supported_capabilities = {
     capabilities.refresh
   },
@@ -112,17 +127,16 @@ local somfy_handler = {
     },
     [capabilities.mode.ID] = {
       [capabilities.mode.commands.setMode.NAME] = capabilities_mode_handler
-    },
+    }
   },
   zigbee_handlers = {
     attr = {
       [custom_clusters.motor.id] = {
-        [custom_clusters.motor.attributes.mode_value.id] = mode_attr_handler,
-        [custom_clusters.motor.attributes.hardwareFault.id] = hardwareFault_attr_handler
+        [custom_clusters.motor.attributes.mode_value.id] = mode_attr_handler
       }
     }
   },
   can_handle = is_zigbee_window_shade,
 }
 
-return somfy_handler
+return HOPOsmart_handler

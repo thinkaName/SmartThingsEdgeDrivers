@@ -41,7 +41,7 @@ local zigbee_window_treatment_driver_template = {
     require("yoolax"),
     require("hanssem"),
     require("screen-innovations"),
-	require("VIVIDSTORM")
+	require("HOPOsmart")
   },
   lifecycle_handlers = {
     added = added_handler
