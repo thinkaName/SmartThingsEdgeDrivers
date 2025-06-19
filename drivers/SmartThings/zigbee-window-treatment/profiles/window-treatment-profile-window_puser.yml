@@ -1,13 +1,32 @@
 name: window-treatment-profile-window_puser
 components:
-- id: main
-  capabilities:
-  - id: mode
-    version: 1
-  - id: firmwareUpdate
-    version: 1
-  - id: refresh
-    version: 1
-  categories:
-  - name: Blind
-
+    - id: Open
+      capabilities:
+      - id: momentary
+        version: 1
+      - id: mode
+        version: 1
+      - id: firmwareUpdate
+        version: 1
+      - id: refresh
+        version: 1
+      categories:
+      - name: Blind
+    - id: Hang
+      capabilities:
+      - id: momentary
+        version: 1
+      categories:
+      - name: Blind
+    - id: Puse
+      capabilities:
+      - id: momentary
+        version: 1
+      categories:
+      - name: Blind
+    - id: Close
+      capabilities:
+      - id: momentary
+        version: 1
+      categories:
+      - name: Blind

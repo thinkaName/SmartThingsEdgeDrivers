@@ -103,6 +103,54 @@ local function capabilities_mode_handler(driver, device, command)
 	end
 end
 
+local function capabilities_momentary_handler(driver, device, command)
+  if command.component == "Open" then
+	device:send(
+      cluster_base.write_manufacturer_specific_attribute(
+        device,
+        custom_clusters.motor.id,
+        custom_clusters.motor.attributes.mode_value.id,
+        custom_clusters.motor.mfg_specific_code,
+        custom_clusters.motor.attributes.mode_value.value_type,
+        0
+      )
+    )
+  elseif command.component == "Hang" then
+    device:send(
+      cluster_base.write_manufacturer_specific_attribute(
+        device,
+        custom_clusters.motor.id,
+        custom_clusters.motor.attributes.mode_value.id,
+        custom_clusters.motor.mfg_specific_code,
+        custom_clusters.motor.attributes.mode_value.value_type,
+        1
+      )
+    )
+	elseif command.component == "Puse" then
+    device:send(
+      cluster_base.write_manufacturer_specific_attribute(
+        device,
+        custom_clusters.motor.id,
+        custom_clusters.motor.attributes.mode_value.id,
+        custom_clusters.motor.mfg_specific_code,
+        custom_clusters.motor.attributes.mode_value.value_type,
+        2
+      )
+    )
+	elseif command.component == "Close" then
+    device:send(
+      cluster_base.write_manufacturer_specific_attribute(
+        device,
+        custom_clusters.motor.id,
+        custom_clusters.motor.attributes.mode_value.id,
+        custom_clusters.motor.mfg_specific_code,
+        custom_clusters.motor.attributes.mode_value.value_type,
+        3
+      )
+    )
+	end
+end
+
 local function do_refresh(driver, device)
   send_read_attr_request(device, custom_clusters.motor, custom_clusters.motor.attributes.mode_value)
 end
@@ -127,6 +175,9 @@ local HOPOsmart_handler = {
     },
     [capabilities.mode.ID] = {
       [capabilities.mode.commands.setMode.NAME] = capabilities_mode_handler
+    },
+	[capabilities.momentary.ID] = {
+      [capabilities.momentary.commands.push.NAME] = capabilities_momentary_handler
     }
   },
   zigbee_handlers = {
