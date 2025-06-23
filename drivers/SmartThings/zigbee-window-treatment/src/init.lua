@@ -27,9 +27,7 @@ local zigbee_window_treatment_driver_template = {
     capabilities.windowShadeLevel,
     capabilities.powerSource,
     capabilities.battery,
-	capabilities.mode,
-	capabilities.hardwareFault,
-	capabilities.momentary
+    capabilities.momentary
   },
   sub_drivers = {
     require("vimar"),
@@ -42,7 +40,7 @@ local zigbee_window_treatment_driver_template = {
     require("yoolax"),
     require("hanssem"),
     require("screen-innovations"),
-	require("HOPOsmart")
+    require("HOPOsmart")
   },
   lifecycle_handlers = {
     added = added_handler

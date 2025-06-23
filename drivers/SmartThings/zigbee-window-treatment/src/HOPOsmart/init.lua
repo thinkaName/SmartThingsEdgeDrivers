@@ -19,14 +19,14 @@ local cluster_base = require "st.zigbee.cluster_base"
 local log = require "log"
 
 local ZIGBEE_WINDOW_SHADE_FINGERPRINTS = {
-    { mfr = "HOPOsmart", model = "HOPOsmart" }
+  { mfr = "HOPOsmart", model = "HOPOsmart" }
 }
 
 local is_zigbee_window_shade = function(opts, driver, device)
   for _, fingerprint in ipairs(ZIGBEE_WINDOW_SHADE_FINGERPRINTS) do
-      if device:get_manufacturer() == fingerprint.mfr and device:get_model() == fingerprint.model then
-          return true
-      end
+    if device:get_manufacturer() == fingerprint.mfr and device:get_model() == fingerprint.model then
+        return true
+    end
   end
   return false
 end
@@ -54,7 +54,7 @@ local function capabilities_momentary_handler(driver, device, command)
         1
       )
     )
-	elseif command.component == "Puse" then
+  elseif command.component == "Puse" then
     device:send(
       cluster_base.write_manufacturer_specific_attribute(
         device,
@@ -65,7 +65,7 @@ local function capabilities_momentary_handler(driver, device, command)
         2
       )
     )
-	elseif command.component == "Close" then
+  elseif command.component == "Close" then
     device:send(
       cluster_base.write_manufacturer_specific_attribute(
         device,
@@ -76,13 +76,13 @@ local function capabilities_momentary_handler(driver, device, command)
         3
       )
     )
-	end
+  end
 end
 
 local HOPOsmart_handler = {
   NAME = "HOPOsmart Device Handler",
   capability_handlers = {
-	[capabilities.momentary.ID] = {
+    [capabilities.momentary.ID] = {
       [capabilities.momentary.commands.push.NAME] = capabilities_momentary_handler
     }
   },
