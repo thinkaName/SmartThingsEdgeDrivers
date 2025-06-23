@@ -28,7 +28,8 @@ local zigbee_window_treatment_driver_template = {
     capabilities.powerSource,
     capabilities.battery,
 	capabilities.mode,
-	capabilities.hardwareFault
+	capabilities.hardwareFault,
+	capabilities.momentary
   },
   sub_drivers = {
     require("vimar"),
