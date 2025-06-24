@@ -46,9 +46,9 @@ end
 
 local function mode_attr_handler(driver, device, value, zb_rx)
   if value.value == 0 then
-    device:emit_event(capabilities.mode.mode("Set upper limit"))
+    device:emit_event(capabilities.mode.mode("设置上限位"))
   elseif value.value == 1 then
-    device:emit_event(capabilities.mode.mode("Delete all limits"))
+    device:emit_event(capabilities.mode.mode("删除上限位"))
   end
 end
 
@@ -61,7 +61,7 @@ local function hardwareFault_attr_handler(driver, device, value, zb_rx)
 end
 
 local function capabilities_mode_handler(driver, device, command)
-  if command.args.mode == "Set upper limit" then
+  if command.args.mode == "设置上限位" then
 	device:send(
       cluster_base.write_manufacturer_specific_attribute(
         device,
@@ -72,7 +72,7 @@ local function capabilities_mode_handler(driver, device, command)
         0
       )
     )
-  elseif command.args.mode == "Delete all limits" then
+  elseif command.args.mode == "删除上限位" then
     device:send(
       cluster_base.write_manufacturer_specific_attribute(
         device,
@@ -93,8 +93,8 @@ local function do_refresh(driver, device)
 end
 
 local function added_handler(self, device)
-  device:emit_event(capabilities.mode.supportedModes({"Set upper limit", "Delete all limits"}))
-  device:emit_event(capabilities.mode.mode("Set upper limit"))
+  device:emit_event(capabilities.mode.supportedModes({"设置上限位", "删除上限位"}))
+  device:emit_event(capabilities.mode.mode("设置上限位"))
   do_refresh()
 end
 
