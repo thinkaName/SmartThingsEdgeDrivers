@@ -1,17 +1,29 @@
 name: window-treatment-profile-screen-VIVIDSTORM
 components:
-- id: main
-  capabilities:
-  - id: windowShade
-    version: 1
-  - id: mode
-    version: 1
-  - id: hardwareFault
-    version: 1
-  - id: firmwareUpdate
-    version: 1
-  - id: refresh
-    version: 1
-  categories:
-  - name: Blind
-
+  - label: " "
+    id: main
+    capabilities:
+      - id: firmwareUpdate
+        version: 1
+      - id: refresh
+        version: 1
+    categories:
+      - name: Projector
+  - label: "开关"
+    id: Open
+    capabilities:
+      - id: windowShade
+        version: 1
+  - label: "设置/删除限位"
+    id: Setlimit
+    capabilities:
+      - id: mode
+        version: 1
+  - label: "硬件问题"
+    id: hardwareFault
+    capabilities:
+      - id: hardwareFault
+        version: 1
+metadata:
+  mnmn: SmartThingsCommunity
+  vid: 5d5ffd39-ac33-3b58-bce5-070707435937
