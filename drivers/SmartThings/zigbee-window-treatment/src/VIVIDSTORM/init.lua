@@ -19,6 +19,12 @@ local cluster_base = require "st.zigbee.cluster_base"
 local WindowCovering = zcl_clusters.WindowCovering
 local log = require "log"
 
+local MOST_RECENT_SETLEVEL = "windowShade_recent_setlevel"
+local LEVEL_UPDATE_TIMEOUT = "windowShade_update_timeout"
+
+local most_recent_setlevel = 0
+--local timer
+
 local ZIGBEE_WINDOW_SHADE_FINGERPRINTS = {
     { mfr = "VIVIDSTORM", model = "VWSDSTUST120H" }
 }
@@ -46,19 +52,50 @@ end
 
 local function mode_attr_handler(driver, device, value, zb_rx)
   if value.value == 0 then
-    device:emit_event(capabilities.mode.mode("设置上限位"))
+    device:emit_component_event(device.profile.components.Setlimit,capabilities.mode.mode("设置上限位"))
   elseif value.value == 1 then
-    device:emit_event(capabilities.mode.mode("设置下限位"))
+    device:emit_component_event(device.profile.components.Setlimit,capabilities.mode.mode("设置下限位"))
   elseif value.value == 2 then
-    device:emit_event(capabilities.mode.mode("删除所有限位"))
+    device:emit_component_event(device.profile.components.Setlimit,capabilities.mode.mode("删除所有限位"))
   end
+end
+
+local function liftPercentage_attr_handler(driver, device, value, zb_rx)
+  --local most_recent_setlevel = device:get_field(MOST_RECENT_SETLEVEL)
+    if value.value and most_recent_setlevel and value.value ~= most_recent_setlevel then
+      if value.value > most_recent_setlevel then
+        device:emit_component_event(device.profile.components.Open,capabilities.windowShade.windowShade.opening())
+      elseif value.value < most_recent_setlevel then
+        device:emit_component_event(device.profile.components.Open,capabilities.windowShade.windowShade.closing())
+      end
+    end
+  --device:set_field(MOST_RECENT_SETLEVEL, value.value)
+  most_recent_setlevel = value.value
+--[[  local timer = device:get_field(LEVEL_UPDATE_TIMEOUT)
+  if timer then
+    device.thread.cancel_timer(timer)
+	device:set_field(LEVEL_UPDATE_TIMEOUT, nil)
+  end--]]
+  device.thread:call_with_delay(10, function ()
+    --device:set_field(LEVEL_UPDATE_TIMEOUT, nil)
+    if most_recent_setlevel == 0 then
+      device:emit_component_event(device.profile.components.Open,capabilities.windowShade.windowShade.closed())
+    elseif most_recent_setlevel == 100 then
+      device:emit_component_event(device.profile.components.Open,capabilities.windowShade.windowShade.open())
+    else
+      device:emit_component_event(device.profile.components.Open,capabilities.windowShade.windowShade.partially_open())
+    end
+  end)
+  --[[if timer then
+    device:set_field(LEVEL_UPDATE_TIMEOUT, timer)
+  end--]]
 end
 
 local function hardwareFault_attr_handler(driver, device, value, zb_rx)
   if value.value == 1 then
-    device:emit_event(capabilities.hardwareFault.hardwareFault.detected())
+    device:emit_component_event(device.profile.components.hardwareFault,capabilities.hardwareFault.hardwareFault.detected())
   elseif value.value == 0 then
-    device:emit_event(capabilities.hardwareFault.hardwareFault.clear())
+    device:emit_component_event(device.profile.components.hardwareFault,capabilities.hardwareFault.hardwareFault.clear())
   end
 end
 
@@ -106,8 +143,8 @@ local function do_refresh(driver, device)
 end
 
 local function added_handler(self, device)
-  device:emit_event(capabilities.mode.supportedModes({"设置上限位", "设置下限位", "删除所有限位"}))
-  device:emit_event(capabilities.mode.mode("设置上限位"))
+  device:emit_component_event(device.profile.components.Setlimit,capabilities.mode.supportedModes({"设置上限位", "设置下限位", "删除所有限位"}))
+  device:emit_component_event(device.profile.components.Setlimit,capabilities.mode.mode("设置上限位"))
   do_refresh()
 end
 
@@ -129,6 +166,9 @@ local somfy_handler = {
   },
   zigbee_handlers = {
     attr = {
+	  [WindowCovering.ID] = {
+        [WindowCovering.attributes.CurrentPositionLiftPercentage.ID] = liftPercentage_attr_handler
+      },
       [custom_clusters.motor.id] = {
         [custom_clusters.motor.attributes.mode_value.id] = mode_attr_handler,
         [custom_clusters.motor.attributes.hardwareFault.id] = hardwareFault_attr_handler
