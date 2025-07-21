@@ -1,4 +1,4 @@
--- Copyright 2022 SmartThings
+-- Copyright 2025 SmartThings
 --
 -- Licensed under the Apache License, Version 2.0 (the "License");
 -- you may not use this file except in compliance with the License.
@@ -18,18 +18,21 @@ local zigbee_test_utils = require "integration_test.zigbee_test_utils"
 local clusters = require "st.zigbee.zcl.clusters"
 local capabilities = require "st.capabilities"
 local t_utils = require "integration_test.utils"
+local data_types = require "st.zigbee.data_types"
+local cluster_base = require "st.zigbee.cluster_base"
 
-local Level = clusters.Level
+local PRIVATE_CLUSTER_ID = 0xFCC9
+local MFG_CODE = 0x1235
 
 local mock_device = test.mock_device.build_test_zigbee_device(
-    { profile = t_utils.get_profile_definition("window-treatment-profile.yml"),
+    { profile = t_utils.get_profile_definition("window-treatment-profile-screen-VIVIDSTORM.yml"),
       fingerprinted_endpoint_id = 0x01,
       zigbee_endpoints = {
         [1] = {
           id = 1,
-          manufacturer = "Feibit Co.Ltd",
-          model = "FTB56-ZT218AK1.6",
-          server_clusters = {0x0000, 0x0003, 0x0004, 0x0005, 0x0006, 0x0008, 0x0102}
+          manufacturer = "VIVIDSTORM",
+          model = "VWSDSTUST120H",
+          server_clusters = {0x0000, 0x0102, 0xFCC9}
         }
       }
     }
@@ -44,83 +47,37 @@ end
 test.set_test_init_function(test_init)
 
 test.register_coroutine_test(
-    "State transition from opening to partially open",
-    function()
-      test.timer.__create_and_queue_test_time_advance_timer(1, "oneshot")
-      test.socket.zigbee:__queue_receive(
-        {
-          mock_device.id,
-          Level.attributes.CurrentLevel:build_test_attr_report(mock_device, 1)
-        }
-      )
-      test.socket.capability:__expect_send(
-          {
-            mock_device.id,
-            {
-              capability_id = "windowShadeLevel", component_id = "main",
-              attribute_id = "shadeLevel", state = { value = 2 }
-            }
-          }
-      )
-      test.socket.capability:__expect_send(
-        mock_device:generate_test_message("main", capabilities.windowShade.windowShade.opening())
-      )
-      test.mock_time.advance_time(2)
-      test.socket.capability:__expect_send(
-        mock_device:generate_test_message("main", capabilities.windowShade.windowShade.partially_open())
-      )
-      test.wait_for_events()
-    end
+  "capability - refresh",
+  function()
+    test.socket.capability:__queue_receive({ mock_device.id,
+      { capability = "refresh", component = "main", command = "refresh", args = {} } })
+
+    local read_0x0000_messge = cluster_base.read_manufacturer_specific_attribute(mock_device, PRIVATE_CLUSTER_ID, 0x0000, MFG_CODE)
+    local read_0x0001_messge = cluster_base.read_manufacturer_specific_attribute(mock_device, PRIVATE_CLUSTER_ID, 0x0001, MFG_CODE)
+	test.socket.zigbee:__expect_send({mock_device.id,
+        clusters.WindowCovering.attributes.CurrentPositionLiftPercentage:read(mock_device)
+    })
+    test.socket.zigbee:__expect_send({mock_device.id, read_0x0000_messge})
+    test.socket.zigbee:__expect_send({mock_device.id, read_0x0001_messge})
+  end
 )
 
 test.register_coroutine_test(
-    "State transition from opening to closing",
-    function()
-      test.timer.__create_and_queue_test_time_advance_timer(1, "oneshot")
-      test.socket.zigbee:__queue_receive(
-        {
-          mock_device.id,
-          Level.attributes.CurrentLevel:build_test_attr_report(mock_device, 10)
-        }
-      )
-      test.socket.capability:__expect_send(
-          {
-            mock_device.id,
-            {
-              capability_id = "windowShadeLevel", component_id = "main",
-              attribute_id = "shadeLevel", state = { value = 25 }
-            }
-          }
-      )
-      test.socket.capability:__expect_send(
-        mock_device:generate_test_message("main", capabilities.windowShade.windowShade.opening())
-      )
-      test.mock_time.advance_time(2)
-      test.socket.capability:__expect_send(
-        mock_device:generate_test_message("main", capabilities.windowShade.windowShade.partially_open())
-      )
-      test.wait_for_events()
-      test.timer.__create_and_queue_test_time_advance_timer(1, "oneshot")
-      test.socket.zigbee:__queue_receive({
-        mock_device.id,
-        Level.attributes.CurrentLevel:build_test_attr_report(mock_device, 5)
-      })
-      test.socket.capability:__expect_send({
-        mock_device.id,
-        {
-          capability_id = "windowShadeLevel", component_id = "main",
-          attribute_id = "shadeLevel", state = { value = 12 }
-        }
-      })
-      test.socket.capability:__expect_send(
-        mock_device:generate_test_message("main", capabilities.windowShade.windowShade.closing())
-      )
-      test.mock_time.advance_time(3)
-      test.socket.capability:__expect_send(
-        mock_device:generate_test_message("main", capabilities.windowShade.windowShade.partially_open())
-      )
-      test.wait_for_events()
-    end
+  "lifecycle - added test",
+  function()
+    test.socket.device_lifecycle:__queue_receive({ mock_device.id, "added" })
+    test.socket.capability:__expect_send(mock_device:generate_test_message("Setlimit", capabilities.mode.supportedModes({"设置上限位", "设置下限位", "删除所有限位"})))
+    test.socket.capability:__expect_send(mock_device:generate_test_message("Setlimit", capabilities.mode.mode("设置上限位")))
+	test.socket.capability:__expect_send(mock_device:generate_test_message("hardwareFault", capabilities.hardwareFault.hardwareFault.clear()))
+	
+	local read_0x0000_messge = cluster_base.read_manufacturer_specific_attribute(mock_device, PRIVATE_CLUSTER_ID, 0x0000, MFG_CODE)
+    local read_0x0001_messge = cluster_base.read_manufacturer_specific_attribute(mock_device, PRIVATE_CLUSTER_ID, 0x0001, MFG_CODE)
+	test.socket.zigbee:__expect_send({mock_device.id,
+        clusters.WindowCovering.attributes.CurrentPositionLiftPercentage:read(mock_device)
+    })
+    test.socket.zigbee:__expect_send({mock_device.id, read_0x0000_messge})
+    test.socket.zigbee:__expect_send({mock_device.id, read_0x0001_messge})
+  end
 )
 
 test.register_message_test(
@@ -132,7 +89,7 @@ test.register_message_test(
         message = {
           mock_device.id,
           {
-            capability = "windowShade", component = "main", command = "open", args = {}
+            capability = "windowShade", component = "Open", command = "open", args = {}
           }
         }
       },
@@ -153,7 +110,7 @@ test.register_message_test(
         message = {
           mock_device.id,
           {
-            capability = "windowShade", component = "main", command = "close", args = {}
+            capability = "windowShade", component = "Open", command = "close", args = {}
           }
         }
       },
@@ -174,7 +131,7 @@ test.register_message_test(
       {
         channel = "capability",
         direction = "receive",
-        message = { mock_device.id, { capability = "windowShade", component = "main", command = "pause", args = {} } }
+        message = { mock_device.id, { capability = "windowShade", component = "Open", command = "pause", args = {} } }
       },
       {
         channel = "zigbee",
@@ -187,192 +144,169 @@ test.register_message_test(
     }
 )
 
-test.register_message_test(
-    "Handle Window Shade level command",
-    {
-      {
-        channel = "capability",
-        direction = "receive",
-        message = {
-          mock_device.id,
-          {
-            capability = "windowShadeLevel", component = "main",
-            command = "setShadeLevel", args = { 33 }
-          }
-        }
-      },
-      {
-        channel = "zigbee",
-        direction = "send",
-        message = {
-          mock_device.id,
-          Level.server.commands.MoveToLevelWithOnOff(mock_device,math.floor(33/100 * 254))
-        }
-      }
+test.register_coroutine_test(
+  "Handle Setlimit 设置上限位",
+  function()
+    test.socket.capability:__queue_receive({
+      mock_device.id,
+      { capability = "mode", component = "Setlimit",  command ="setMode" , args = {"设置上限位"}}
+    })
+    test.socket.zigbee:__expect_send({ mock_device.id,
+      cluster_base.write_manufacturer_specific_attribute(mock_device, PRIVATE_CLUSTER_ID,
+        0x0000, MFG_CODE, data_types.Uint8, 0)
+    })
+  end
+)
+
+test.register_coroutine_test(
+  "Handle Setlimit 设置下限位",
+  function()
+    test.socket.capability:__queue_receive({
+      mock_device.id,
+      { capability = "mode", component = "Setlimit",  command ="setMode" , args = {"设置下限位"}}
+    })
+    test.socket.zigbee:__expect_send({ mock_device.id,
+      cluster_base.write_manufacturer_specific_attribute(mock_device, PRIVATE_CLUSTER_ID,
+        0x0000, MFG_CODE, data_types.Uint8, 1)
+    })
+  end
+)
+
+test.register_coroutine_test(
+  "Handle Setlimit 删除所有限位",
+  function()
+    test.socket.capability:__queue_receive({
+      mock_device.id,
+      { capability = "mode", component = "Setlimit",  command ="setMode" , args = {"删除所有限位"}}
+    })
+    test.socket.zigbee:__expect_send({ mock_device.id,
+      cluster_base.write_manufacturer_specific_attribute(mock_device, PRIVATE_CLUSTER_ID,
+        0x0000, MFG_CODE, data_types.Uint8, 2)
+    })
+  end
+)
+
+test.register_coroutine_test(
+  "Device reported Setlimit 0 and driver emit capabilities.mode.mode 0",
+  function()
+    local attr_report_data = {
+      { 0x0000, data_types.Uint8.ID, 0 }
     }
-)
-
-test.register_coroutine_test(
-  "windowShadePreset capability should be handled with preset value of 30",
-  function()
-    test.socket.device_lifecycle():__queue_receive(mock_device:generate_info_changed({preferences = {presetPosition = 30}}))
-    test.wait_for_events()
-    test.socket.capability:__queue_receive(
-      {
-        mock_device.id,
-        { capability = "windowShadePreset", component = "main", command = "presetPosition", args = {} }
-      }
-    )
-    test.socket.zigbee:__expect_send({
+    test.socket.zigbee:__queue_receive({
       mock_device.id,
-      Level.server.commands.MoveToLevelWithOnOff(mock_device,math.floor(30/100 * 254))
+      zigbee_test_utils.build_attribute_report(mock_device, PRIVATE_CLUSTER_ID, attr_report_data, MFG_CODE)
     })
+    test.socket.capability:__expect_send(mock_device:generate_test_message("Setlimit",
+      capabilities.mode.mode("设置上限位")))
   end
 )
 
 test.register_coroutine_test(
-  "windowShadePreset capability should be handled without any preset value ",
+  "Device reported Setlimit 1 and driver emit capabilities.mode.mode 1",
   function()
-    test.socket.device_lifecycle():__queue_receive(mock_device:generate_info_changed({preferences = {}}))
-    test.wait_for_events()
-    test.socket.capability:__queue_receive(
-      {
-        mock_device.id,
-        { capability = "windowShadePreset", component = "main", command = "presetPosition", args = {} }
-      }
-    )
-    test.socket.zigbee:__expect_send({
+    local attr_report_data = {
+      { 0x0000, data_types.Uint8.ID, 1 }
+    }
+    test.socket.zigbee:__queue_receive({
       mock_device.id,
-      Level.server.commands.MoveToLevelWithOnOff(mock_device,math.floor(50/100 * 254))
+      zigbee_test_utils.build_attribute_report(mock_device, PRIVATE_CLUSTER_ID, attr_report_data, MFG_CODE)
     })
+    test.socket.capability:__expect_send(mock_device:generate_test_message("Setlimit",
+      capabilities.mode.mode("设置下限位")))
   end
 )
 
 test.register_coroutine_test(
-  "windowShadePreset capability should be handled with preset value = 100 ",
+  "Device reported Setlimit 2 and driver emit capabilities.mode.mode 2",
   function()
-    test.socket.device_lifecycle():__queue_receive(mock_device:generate_info_changed({preferences = {presetPosition = 100}}))
-    test.wait_for_events()
-    test.socket.capability:__queue_receive(
-      {
-        mock_device.id,
-        { capability = "windowShadePreset", component = "main", command = "presetPosition", args = {} }
-      }
-    )
-    test.socket.zigbee:__expect_send({
+    local attr_report_data = {
+      { 0x0000, data_types.Uint8.ID, 2 }
+    }
+    test.socket.zigbee:__queue_receive({
       mock_device.id,
-      Level.server.commands.MoveToLevelWithOnOff(mock_device,math.floor(100/100 * 254))
+      zigbee_test_utils.build_attribute_report(mock_device, PRIVATE_CLUSTER_ID, attr_report_data, MFG_CODE)
     })
+    test.socket.capability:__expect_send(mock_device:generate_test_message("Setlimit",
+      capabilities.mode.mode("删除所有限位")))
   end
 )
 
 test.register_coroutine_test(
-  "windowShadePreset capability should be handled with preset value = 1 ",
+  "Device reported hardwareFault 0 and driver emit capabilities.hardwareFault.hardwareFault.clear()",
   function()
-    test.socket.device_lifecycle():__queue_receive(mock_device:generate_info_changed({preferences = {presetPosition = 1}}))
-    test.wait_for_events()
-    test.socket.capability:__queue_receive(
-      {
-        mock_device.id,
-        { capability = "windowShadePreset", component = "main", command = "presetPosition", args = {} }
-      }
-    )
-    test.socket.zigbee:__expect_send({
+    local attr_report_data = {
+      { 0x0001, data_types.Uint8.ID, 0 }
+    }
+    test.socket.zigbee:__queue_receive({
       mock_device.id,
-      Level.server.commands.MoveToLevelWithOnOff(mock_device,math.floor(1/100 * 254))
+      zigbee_test_utils.build_attribute_report(mock_device, PRIVATE_CLUSTER_ID, attr_report_data, MFG_CODE)
     })
+    test.socket.capability:__expect_send(mock_device:generate_test_message("hardwareFault",
+      capabilities.hardwareFault.hardwareFault.clear()))
   end
 )
 
 test.register_coroutine_test(
-  "windowShadePreset capability should be handled with a positive preset value of < 1",
+  "Device reported hardwareFault 1 and driver emit capabilities.hardwareFault.hardwareFault.detected()",
   function()
-    test.socket.device_lifecycle():__queue_receive(mock_device:generate_info_changed({preferences = {presetPosition = 0}}))
-    test.wait_for_events()
-    test.socket.capability:__queue_receive(
-      {
-        mock_device.id,
-        { capability = "windowShadePreset", component = "main", command = "presetPosition", args = {} }
-      }
-    )
-    test.socket.zigbee:__expect_send({
+    local attr_report_data = {
+      { 0x0001, data_types.Uint8.ID, 1 }
+    }
+    test.socket.zigbee:__queue_receive({
       mock_device.id,
-      Level.server.commands.MoveToLevelWithOnOff(mock_device,math.floor(0/100 * 254))
+      zigbee_test_utils.build_attribute_report(mock_device, PRIVATE_CLUSTER_ID, attr_report_data, MFG_CODE)
     })
+    test.socket.capability:__expect_send(mock_device:generate_test_message("hardwareFault",
+      capabilities.hardwareFault.hardwareFault.detected()))
   end
 )
 
 test.register_message_test(
-    "Handle Window Shade Preset command",
+  "WindowCovering CurrentPositionLiftPercentage report 10 emit opening",
+  {
     {
-      {
-        channel = "capability",
-        direction = "receive",
-        message = {
-          mock_device.id,
-          {
-            capability = "windowShadePreset", component = "main",
-            command = "presetPosition", args = {}
-          }
-        }
-      },
-      {
-        channel = "zigbee",
-        direction = "send",
-        message = {
-          mock_device.id,
-          Level.server.commands.MoveToLevelWithOnOff(mock_device, math.floor(50 / 100 * 254))
-        }
-      }
+      channel = "zigbee",
+      direction = "receive",
+      message = { mock_device.id, clusters.WindowCovering.attributes.CurrentPositionLiftPercentage:build_test_attr_report(mock_device, 10) }
+    },
+    {
+      channel = "capability",
+      direction = "send",
+      message = mock_device:generate_test_message("Open", capabilities.windowShade.windowShade.opening())
     }
+  }
 )
 
-test.register_coroutine_test(
-    "Refresh necessary attributes",
-    function()
-      test.socket.device_lifecycle:__queue_receive({ mock_device.id, "added" })
-      test.socket.capability:__expect_send(
-        mock_device:generate_test_message("main", capabilities.windowShade.supportedWindowShadeCommands({ "open", "close", "pause" },{ visibility = { displayed = false }}))
-      )
-      test.wait_for_events()
-
-      test.socket.zigbee:__set_channel_ordering("relaxed")
-      test.socket.capability:__queue_receive({
-        mock_device.id,
-        {
-          capability = "refresh", component = "main", command = "refresh", args = {}
-        }
-      })
-      test.socket.zigbee:__expect_send({
-        mock_device.id,
-        Level.attributes.CurrentLevel:read(mock_device)
-      })
-    end
+test.register_message_test(
+  "WindowCovering CurrentPositionLiftPercentage report 100 emit open",
+  {
+    {
+      channel = "zigbee",
+      direction = "receive",
+      message = { mock_device.id, clusters.WindowCovering.attributes.CurrentPositionLiftPercentage:build_test_attr_report(mock_device, 100) }
+    },
+    {
+      channel = "capability",
+      direction = "send",
+      message = mock_device:generate_test_message("Open", capabilities.windowShade.windowShade.opening())
+    }
+  }
 )
 
-test.register_coroutine_test(
-    "Configure should configure all necessary attributes",
-    function()
-      test.socket.device_lifecycle:__queue_receive({ mock_device.id, "added"})
-      test.socket.capability:__expect_send(
-        mock_device:generate_test_message("main", capabilities.windowShade.supportedWindowShadeCommands({ "open", "close", "pause" },{ visibility = { displayed = false }}))
-      )
-      test.wait_for_events()
-
-      test.socket.device_lifecycle:__queue_receive({ mock_device.id, "doConfigure" })
-      test.socket.zigbee:__set_channel_ordering("relaxed")
-      test.socket.zigbee:__expect_send({
-        mock_device.id,
-        Level.attributes.CurrentLevel:configure_reporting(mock_device, 1, 3600, 1)
-      })
-      test.socket.zigbee:__expect_send({
-        mock_device.id,
-        zigbee_test_utils.build_bind_request(mock_device,
-                                              zigbee_test_utils.mock_hub_eui,
-                                              Level.ID)
-      })
-      mock_device:expect_metadata_update({ provisioning_state = "PROVISIONED" })
-    end
+test.register_message_test(
+  "WindowCovering CurrentPositionLiftPercentage report 1 emit closing",
+  {
+    {
+      channel = "zigbee",
+      direction = "receive",
+      message = { mock_device.id, clusters.WindowCovering.attributes.CurrentPositionLiftPercentage:build_test_attr_report(mock_device, 1) }
+    },
+    {
+      channel = "capability",
+      direction = "send",
+      message = mock_device:generate_test_message("Open", capabilities.windowShade.windowShade.closing())
+    }
+  }
 )
 
 test.run_registered_tests()

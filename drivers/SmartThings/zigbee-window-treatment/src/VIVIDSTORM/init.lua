@@ -145,7 +145,8 @@ end
 local function added_handler(self, device)
   device:emit_component_event(device.profile.components.Setlimit,capabilities.mode.supportedModes({"设置上限位", "设置下限位", "删除所有限位"}))
   device:emit_component_event(device.profile.components.Setlimit,capabilities.mode.mode("设置上限位"))
-  do_refresh()
+  device:emit_component_event(device.profile.components.hardwareFault,capabilities.hardwareFault.hardwareFault.clear())
+  do_refresh(self, device)
 end
 
 local somfy_handler = {
