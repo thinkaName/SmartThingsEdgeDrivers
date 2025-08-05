@@ -56,7 +56,9 @@ local function mode_attr_handler(driver, device, value, zb_rx)
   elseif value.value == 1 then
     device:emit_component_event(device.profile.components.Setlimit,capabilities.mode.mode("设置下限位"))
   elseif value.value == 2 then
-    device:emit_component_event(device.profile.components.Setlimit,capabilities.mode.mode("删除所有限位"))
+    device:emit_component_event(device.profile.components.Setlimit,capabilities.mode.mode("删除上限位"))
+  elseif value.value == 3 then
+    device:emit_component_event(device.profile.components.Setlimit,capabilities.mode.mode("删除下限位"))
   end
 end
 
@@ -99,6 +101,20 @@ local function hardwareFault_attr_handler(driver, device, value, zb_rx)
   end
 end
 
+local function status_attr_handler(driver, device, value, zb_rx)
+  if value.value == 0 then
+    device:emit_component_event(device.profile.components.hardwareFault,capabilities.hardwareFault.hardwareFault.open())
+  elseif value.value == 1 then
+    device:emit_component_event(device.profile.components.hardwareFault,capabilities.hardwareFault.hardwareFault.closed())
+  elseif value.value == 2 then
+    device:emit_component_event(device.profile.components.hardwareFault,capabilities.hardwareFault.hardwareFault.partially_open())
+  elseif value.value == 3 then
+    device:emit_component_event(device.profile.components.hardwareFault,capabilities.hardwareFault.hardwareFault.opening())
+  elseif value.value == 4 then
+    device:emit_component_event(device.profile.components.hardwareFault,capabilities.hardwareFault.hardwareFault.closing())
+  end
+end
+
 local function capabilities_mode_handler(driver, device, command)
   if command.args.mode == "设置上限位" then
 	device:send(
@@ -122,7 +138,7 @@ local function capabilities_mode_handler(driver, device, command)
         1
       )
     )
-  elseif command.args.mode == "删除所有限位" then
+  elseif command.args.mode == "删除上限位" then
     device:send(
       cluster_base.write_manufacturer_specific_attribute(
         device,
@@ -132,8 +148,19 @@ local function capabilities_mode_handler(driver, device, command)
         custom_clusters.motor.attributes.mode_value.value_type,
         2
       )
-    )	
-	end
+    )
+  elseif command.args.mode == "删除下限位" then
+    device:send(
+      cluster_base.write_manufacturer_specific_attribute(
+        device,
+        custom_clusters.motor.id,
+        custom_clusters.motor.attributes.mode_value.id,
+        custom_clusters.motor.mfg_specific_code,
+        custom_clusters.motor.attributes.mode_value.value_type,
+        3
+      )
+    )		
+  end
 end
 
 local function do_refresh(driver, device)
@@ -143,7 +170,7 @@ local function do_refresh(driver, device)
 end
 
 local function added_handler(self, device)
-  device:emit_component_event(device.profile.components.Setlimit,capabilities.mode.supportedModes({"设置上限位", "设置下限位", "删除所有限位"}))
+  device:emit_component_event(device.profile.components.Setlimit,capabilities.mode.supportedModes({"设置上限位", "设置下限位", "删除上限位", "删除下限位"}))
   device:emit_component_event(device.profile.components.Setlimit,capabilities.mode.mode("设置上限位"))
   device:emit_component_event(device.profile.components.hardwareFault,capabilities.hardwareFault.hardwareFault.clear())
   do_refresh(self, device)
@@ -172,7 +199,8 @@ local somfy_handler = {
       },
       [custom_clusters.motor.id] = {
         [custom_clusters.motor.attributes.mode_value.id] = mode_attr_handler,
-        [custom_clusters.motor.attributes.hardwareFault.id] = hardwareFault_attr_handler
+        [custom_clusters.motor.attributes.hardwareFault.id] = hardwareFault_attr_handler,
+		[custom_clusters.motor.attributes.status_value.id] = status_attr_handler
       }
     }
   },

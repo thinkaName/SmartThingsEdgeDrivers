@@ -26,6 +26,10 @@ local custom_clusters = {
 	  hardwareFault = {
         id = 0x0001,
         value_type = data_types.Uint8,
+      },
+	  status_value = {
+        id = 0x0002,
+        value_type = data_types.Uint8,
       }
     }
   }
