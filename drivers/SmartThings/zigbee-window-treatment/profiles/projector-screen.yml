@@ -1,0 +1,22 @@
+name: projector-screen
+components:
+  - label: " "
+    id: main
+    capabilities:
+      - id: windowShade
+        version: 1
+      - id: mode
+        version: 1
+      - id: firmwareUpdate
+        version: 1
+      - id: refresh      
+    categories:
+      - name: Projector
+  - label: " "
+    id: hardwareFault
+    capabilities:
+      - id: hardwareFault
+        version: 1
+metadata:
+  mnmn: SmartThingsCommunity
+  vid: 979eb144-f630-3eba-b850-53fdbef65789

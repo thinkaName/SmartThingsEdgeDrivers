@@ -52,13 +52,13 @@ end
 
 local function mode_attr_handler(driver, device, value, zb_rx)
   if value.value == 0 then
-    device:emit_component_event(device.profile.components.Setlimit,capabilities.mode.mode("设置上限位"))
-  elseif value.value == 1 then
-    device:emit_component_event(device.profile.components.Setlimit,capabilities.mode.mode("设置下限位"))
-  elseif value.value == 2 then
     device:emit_component_event(device.profile.components.Setlimit,capabilities.mode.mode("删除上限位"))
-  elseif value.value == 3 then
+  elseif value.value == 1 then
+    device:emit_component_event(device.profile.components.Setlimit,capabilities.mode.mode("设置上限位"))
+  elseif value.value == 2 then
     device:emit_component_event(device.profile.components.Setlimit,capabilities.mode.mode("删除下限位"))
+  elseif value.value == 3 then
+    device:emit_component_event(device.profile.components.Setlimit,capabilities.mode.mode("设置下限位"))
   end
 end
 
@@ -116,7 +116,7 @@ local function status_attr_handler(driver, device, value, zb_rx)
 end
 
 local function capabilities_mode_handler(driver, device, command)
-  if command.args.mode == "设置上限位" then
+  if command.args.mode == "删除上限位" then
 	device:send(
       cluster_base.write_manufacturer_specific_attribute(
         device,
@@ -127,7 +127,7 @@ local function capabilities_mode_handler(driver, device, command)
         0
       )
     )
-  elseif command.args.mode == "设置下限位" then
+  elseif command.args.mode == "设置上限位" then
     device:send(
       cluster_base.write_manufacturer_specific_attribute(
         device,
@@ -138,7 +138,7 @@ local function capabilities_mode_handler(driver, device, command)
         1
       )
     )
-  elseif command.args.mode == "删除上限位" then
+  elseif command.args.mode == "删除下限位" then
     device:send(
       cluster_base.write_manufacturer_specific_attribute(
         device,
@@ -149,7 +149,7 @@ local function capabilities_mode_handler(driver, device, command)
         2
       )
     )
-  elseif command.args.mode == "删除下限位" then
+  elseif command.args.mode == "设置下限位" then
     device:send(
       cluster_base.write_manufacturer_specific_attribute(
         device,
@@ -170,13 +170,13 @@ local function do_refresh(driver, device)
 end
 
 local function added_handler(self, device)
-  device:emit_component_event(device.profile.components.Setlimit,capabilities.mode.supportedModes({"设置上限位", "设置下限位", "删除上限位", "删除下限位"}))
-  device:emit_component_event(device.profile.components.Setlimit,capabilities.mode.mode("设置上限位"))
+  device:emit_component_event(device.profile.components.Setlimit,capabilities.mode.supportedModes({"删除上限位", "设置上限位", "删除下限位", "设置下限位"}))
+  device:emit_component_event(device.profile.components.Setlimit,capabilities.mode.mode("删除上限位"))
   device:emit_component_event(device.profile.components.hardwareFault,capabilities.hardwareFault.hardwareFault.clear())
   do_refresh(self, device)
 end
 
-local somfy_handler = {
+local screen_handler = {
   NAME = "VWSDSTUST120H Device Handler",
   supported_capabilities = {
     capabilities.refresh
@@ -207,4 +207,4 @@ local somfy_handler = {
   can_handle = is_zigbee_window_shade,
 }
 
-return somfy_handler
+return screen_handler
