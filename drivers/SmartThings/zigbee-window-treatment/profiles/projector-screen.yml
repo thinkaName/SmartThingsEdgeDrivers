@@ -18,5 +18,5 @@ components:
       - id: hardwareFault
         version: 1
 metadata:
-  mnmn: SmartThingsCommunity
-  vid: 979eb144-f630-3eba-b850-53fdbef65789
+  mnmn: SolutionsEngineering
+  vid: SmartThings-smartthings-VIVIDSTORM_Projector_Screen

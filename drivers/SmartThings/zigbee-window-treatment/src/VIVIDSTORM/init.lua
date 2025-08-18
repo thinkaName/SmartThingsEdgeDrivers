@@ -52,23 +52,24 @@ end
 
 local function mode_attr_handler(driver, device, value, zb_rx)
   if value.value == 0 then
-    device:emit_component_event(device.profile.components.Setlimit,capabilities.mode.mode("删除上限位"))
+    device:emit_component_event(device.profile.components.main,capabilities.mode.mode("删除上限位"))
   elseif value.value == 1 then
-    device:emit_component_event(device.profile.components.Setlimit,capabilities.mode.mode("设置上限位"))
+    device:emit_component_event(device.profile.components.main,capabilities.mode.mode("设置上限位"))
   elseif value.value == 2 then
-    device:emit_component_event(device.profile.components.Setlimit,capabilities.mode.mode("删除下限位"))
+    device:emit_component_event(device.profile.components.main,capabilities.mode.mode("删除下限位"))
   elseif value.value == 3 then
-    device:emit_component_event(device.profile.components.Setlimit,capabilities.mode.mode("设置下限位"))
+    device:emit_component_event(device.profile.components.main,capabilities.mode.mode("设置下限位"))
   end
 end
 
 local function liftPercentage_attr_handler(driver, device, value, zb_rx)
+  log.error("********************liftPercentage_attr_handler")
   --local most_recent_setlevel = device:get_field(MOST_RECENT_SETLEVEL)
     if value.value and most_recent_setlevel and value.value ~= most_recent_setlevel then
       if value.value > most_recent_setlevel then
-        device:emit_component_event(device.profile.components.Open,capabilities.windowShade.windowShade.opening())
+        device:emit_component_event(device.profile.components.main,capabilities.windowShade.windowShade.opening())
       elseif value.value < most_recent_setlevel then
-        device:emit_component_event(device.profile.components.Open,capabilities.windowShade.windowShade.closing())
+        device:emit_component_event(device.profile.components.main,capabilities.windowShade.windowShade.closing())
       end
     end
   --device:set_field(MOST_RECENT_SETLEVEL, value.value)
@@ -81,11 +82,11 @@ local function liftPercentage_attr_handler(driver, device, value, zb_rx)
   device.thread:call_with_delay(10, function ()
     --device:set_field(LEVEL_UPDATE_TIMEOUT, nil)
     if most_recent_setlevel == 0 then
-      device:emit_component_event(device.profile.components.Open,capabilities.windowShade.windowShade.closed())
+      device:emit_component_event(device.profile.components.main,capabilities.windowShade.windowShade.closed())
     elseif most_recent_setlevel == 100 then
-      device:emit_component_event(device.profile.components.Open,capabilities.windowShade.windowShade.open())
+      device:emit_component_event(device.profile.components.main,capabilities.windowShade.windowShade.open())
     else
-      device:emit_component_event(device.profile.components.Open,capabilities.windowShade.windowShade.partially_open())
+      device:emit_component_event(device.profile.components.main,capabilities.windowShade.windowShade.partially_open())
     end
   end)
   --[[if timer then
@@ -103,15 +104,15 @@ end
 
 local function status_attr_handler(driver, device, value, zb_rx)
   if value.value == 0 then
-    device:emit_component_event(device.profile.components.hardwareFault,capabilities.hardwareFault.hardwareFault.open())
+    device:emit_component_event(device.profile.components.main,capabilities.windowShade.windowShade.open())
   elseif value.value == 1 then
-    device:emit_component_event(device.profile.components.hardwareFault,capabilities.hardwareFault.hardwareFault.closed())
+    device:emit_component_event(device.profile.components.main,capabilities.windowShade.windowShade.closed())
   elseif value.value == 2 then
-    device:emit_component_event(device.profile.components.hardwareFault,capabilities.hardwareFault.hardwareFault.partially_open())
+    device:emit_component_event(device.profile.components.main,capabilities.windowShade.windowShade.partially_open())
   elseif value.value == 3 then
-    device:emit_component_event(device.profile.components.hardwareFault,capabilities.hardwareFault.hardwareFault.opening())
+    device:emit_component_event(device.profile.components.main,capabilities.windowShade.windowShade.opening())
   elseif value.value == 4 then
-    device:emit_component_event(device.profile.components.hardwareFault,capabilities.hardwareFault.hardwareFault.closing())
+    device:emit_component_event(device.profile.components.main,capabilities.windowShade.windowShade.closing())
   end
 end
 
@@ -170,8 +171,8 @@ local function do_refresh(driver, device)
 end
 
 local function added_handler(self, device)
-  device:emit_component_event(device.profile.components.Setlimit,capabilities.mode.supportedModes({"删除上限位", "设置上限位", "删除下限位", "设置下限位"}))
-  device:emit_component_event(device.profile.components.Setlimit,capabilities.mode.mode("删除上限位"))
+  device:emit_component_event(device.profile.components.main,capabilities.mode.supportedModes({"删除上限位", "设置上限位", "删除下限位", "设置下限位"}))
+  device:emit_component_event(device.profile.components.main,capabilities.mode.mode("删除上限位"))
   device:emit_component_event(device.profile.components.hardwareFault,capabilities.hardwareFault.hardwareFault.clear())
   do_refresh(self, device)
 end
@@ -194,9 +195,9 @@ local screen_handler = {
   },
   zigbee_handlers = {
     attr = {
-	  [WindowCovering.ID] = {
+	 --[[ [WindowCovering.ID] = {
         [WindowCovering.attributes.CurrentPositionLiftPercentage.ID] = liftPercentage_attr_handler
-      },
+      },--]]
       [custom_clusters.motor.id] = {
         [custom_clusters.motor.attributes.mode_value.id] = mode_attr_handler,
         [custom_clusters.motor.attributes.hardwareFault.id] = hardwareFault_attr_handler,
