@@ -127,7 +127,7 @@ zigbeeManufacturer:
     deviceLabel: Smart Screen
     manufacturer: VIVIDSTORM
     model: VWSDSTUST120H
-    deviceProfileName: projector-screen
+    deviceProfileName: projector-screen-VWSDSTUST120H
     
 zigbeeGeneric:
   - id: "genericShade"

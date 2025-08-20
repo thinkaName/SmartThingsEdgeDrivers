@@ -17,24 +17,20 @@ local capabilities = require "st.capabilities"
 local custom_clusters = require "VIVIDSTORM/custom_clusters"
 local cluster_base = require "st.zigbee.cluster_base"
 local WindowCovering = zcl_clusters.WindowCovering
-local log = require "log"
 
 local MOST_RECENT_SETLEVEL = "windowShade_recent_setlevel"
-local LEVEL_UPDATE_TIMEOUT = "windowShade_update_timeout"
+local TIMER = "liftPercentage_timer"
 
-local most_recent_setlevel = 0
---local timer
 
 local ZIGBEE_WINDOW_SHADE_FINGERPRINTS = {
-    { mfr = "VIVIDSTORM", model = "VWSDSTUST120H" }
+  { mfr = "VIVIDSTORM", model = "VWSDSTUST120H" }
 }
-
 
 local is_zigbee_window_shade = function(opts, driver, device)
   for _, fingerprint in ipairs(ZIGBEE_WINDOW_SHADE_FINGERPRINTS) do
-      if device:get_manufacturer() == fingerprint.mfr and device:get_model() == fingerprint.model then
-          return true
-      end
+    if device:get_manufacturer() == fingerprint.mfr and device:get_model() == fingerprint.model then
+      return true
+    end
   end
   return false
 end
@@ -52,46 +48,43 @@ end
 
 local function mode_attr_handler(driver, device, value, zb_rx)
   if value.value == 0 then
-    device:emit_component_event(device.profile.components.main,capabilities.mode.mode("删除上限位"))
+    device:emit_component_event(device.profile.components.main,capabilities.mode.mode("Delete upper limit"))
   elseif value.value == 1 then
-    device:emit_component_event(device.profile.components.main,capabilities.mode.mode("设置上限位"))
+    device:emit_component_event(device.profile.components.main,capabilities.mode.mode("Set the upper limit"))
   elseif value.value == 2 then
-    device:emit_component_event(device.profile.components.main,capabilities.mode.mode("删除下限位"))
+    device:emit_component_event(device.profile.components.main,capabilities.mode.mode("Delete lower limit"))
   elseif value.value == 3 then
-    device:emit_component_event(device.profile.components.main,capabilities.mode.mode("设置下限位"))
+    device:emit_component_event(device.profile.components.main,capabilities.mode.mode("Set the lower limit"))
   end
 end
 
+
 local function liftPercentage_attr_handler(driver, device, value, zb_rx)
-  log.error("********************liftPercentage_attr_handler")
-  --local most_recent_setlevel = device:get_field(MOST_RECENT_SETLEVEL)
+  local windowShade = capabilities.windowShade.windowShade
+  local components = device.profile.components.main
+  local most_recent_setlevel = device:get_field(MOST_RECENT_SETLEVEL)
     if value.value and most_recent_setlevel and value.value ~= most_recent_setlevel then
       if value.value > most_recent_setlevel then
-        device:emit_component_event(device.profile.components.main,capabilities.windowShade.windowShade.opening())
+        device:emit_component_event(components,windowShade.opening())
       elseif value.value < most_recent_setlevel then
-        device:emit_component_event(device.profile.components.main,capabilities.windowShade.windowShade.closing())
+        device:emit_component_event(components,windowShade.closing())
       end
     end
-  --device:set_field(MOST_RECENT_SETLEVEL, value.value)
-  most_recent_setlevel = value.value
---[[  local timer = device:get_field(LEVEL_UPDATE_TIMEOUT)
-  if timer then
-    device.thread.cancel_timer(timer)
-	device:set_field(LEVEL_UPDATE_TIMEOUT, nil)
-  end--]]
-  device.thread:call_with_delay(10, function ()
-    --device:set_field(LEVEL_UPDATE_TIMEOUT, nil)
+  device:set_field(MOST_RECENT_SETLEVEL, value.value)
+
+  local timer = device:get_field(TIMER)
+  if timer ~= nil then driver:cancel_timer(timer) end
+  timer = device.thread:call_with_delay(5, function(d)
     if most_recent_setlevel == 0 then
-      device:emit_component_event(device.profile.components.main,capabilities.windowShade.windowShade.closed())
+      device:emit_component_event(components,windowShade.closed())
     elseif most_recent_setlevel == 100 then
-      device:emit_component_event(device.profile.components.main,capabilities.windowShade.windowShade.open())
+      device:emit_component_event(components,windowShade.open())
     else
-      device:emit_component_event(device.profile.components.main,capabilities.windowShade.windowShade.partially_open())
+      device:emit_component_event(components,windowShade.partially_open())
     end
-  end)
-  --[[if timer then
-    device:set_field(LEVEL_UPDATE_TIMEOUT, timer)
-  end--]]
+  end
+  )
+  device:set_field(TIMER, timer)
 end
 
 local function hardwareFault_attr_handler(driver, device, value, zb_rx)
@@ -102,33 +95,19 @@ local function hardwareFault_attr_handler(driver, device, value, zb_rx)
   end
 end
 
-local function status_attr_handler(driver, device, value, zb_rx)
-  if value.value == 0 then
-    device:emit_component_event(device.profile.components.main,capabilities.windowShade.windowShade.open())
-  elseif value.value == 1 then
-    device:emit_component_event(device.profile.components.main,capabilities.windowShade.windowShade.closed())
-  elseif value.value == 2 then
-    device:emit_component_event(device.profile.components.main,capabilities.windowShade.windowShade.partially_open())
-  elseif value.value == 3 then
-    device:emit_component_event(device.profile.components.main,capabilities.windowShade.windowShade.opening())
-  elseif value.value == 4 then
-    device:emit_component_event(device.profile.components.main,capabilities.windowShade.windowShade.closing())
-  end
-end
-
 local function capabilities_mode_handler(driver, device, command)
-  if command.args.mode == "删除上限位" then
-	device:send(
-      cluster_base.write_manufacturer_specific_attribute(
-        device,
-        custom_clusters.motor.id,
-        custom_clusters.motor.attributes.mode_value.id,
-        custom_clusters.motor.mfg_specific_code,
-        custom_clusters.motor.attributes.mode_value.value_type,
-        0
-      )
+  if command.args.mode == "Delete upper limit" then
+  device:send(
+    cluster_base.write_manufacturer_specific_attribute(
+      device,
+      custom_clusters.motor.id,
+      custom_clusters.motor.attributes.mode_value.id,
+      custom_clusters.motor.mfg_specific_code,
+      custom_clusters.motor.attributes.mode_value.value_type,
+      0
     )
-  elseif command.args.mode == "设置上限位" then
+  )
+  elseif command.args.mode == "Set the upper limit" then
     device:send(
       cluster_base.write_manufacturer_specific_attribute(
         device,
@@ -139,7 +118,7 @@ local function capabilities_mode_handler(driver, device, command)
         1
       )
     )
-  elseif command.args.mode == "删除下限位" then
+  elseif command.args.mode == "Delete lower limit" then
     device:send(
       cluster_base.write_manufacturer_specific_attribute(
         device,
@@ -150,7 +129,7 @@ local function capabilities_mode_handler(driver, device, command)
         2
       )
     )
-  elseif command.args.mode == "设置下限位" then
+  elseif command.args.mode == "Set the lower limit" then
     device:send(
       cluster_base.write_manufacturer_specific_attribute(
         device,
@@ -160,7 +139,7 @@ local function capabilities_mode_handler(driver, device, command)
         custom_clusters.motor.attributes.mode_value.value_type,
         3
       )
-    )		
+    )
   end
 end
 
@@ -171,8 +150,6 @@ local function do_refresh(driver, device)
 end
 
 local function added_handler(self, device)
-  device:emit_component_event(device.profile.components.main,capabilities.mode.supportedModes({"删除上限位", "设置上限位", "删除下限位", "设置下限位"}))
-  device:emit_component_event(device.profile.components.main,capabilities.mode.mode("删除上限位"))
   device:emit_component_event(device.profile.components.hardwareFault,capabilities.hardwareFault.hardwareFault.clear())
   do_refresh(self, device)
 end
@@ -195,13 +172,12 @@ local screen_handler = {
   },
   zigbee_handlers = {
     attr = {
-	 --[[ [WindowCovering.ID] = {
+    [WindowCovering.ID] = {
         [WindowCovering.attributes.CurrentPositionLiftPercentage.ID] = liftPercentage_attr_handler
-      },--]]
-      [custom_clusters.motor.id] = {
+      },
+    [custom_clusters.motor.id] = {
         [custom_clusters.motor.attributes.mode_value.id] = mode_attr_handler,
-        [custom_clusters.motor.attributes.hardwareFault.id] = hardwareFault_attr_handler,
-		[custom_clusters.motor.attributes.status_value.id] = status_attr_handler
+        [custom_clusters.motor.attributes.hardwareFault.id] = hardwareFault_attr_handler
       }
     }
   },

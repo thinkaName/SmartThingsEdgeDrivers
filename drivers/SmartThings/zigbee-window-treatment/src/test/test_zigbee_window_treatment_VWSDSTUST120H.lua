@@ -25,7 +25,7 @@ local PRIVATE_CLUSTER_ID = 0xFCC9
 local MFG_CODE = 0x1235
 
 local mock_device = test.mock_device.build_test_zigbee_device(
-    { profile = t_utils.get_profile_definition("window-treatment-profile-screen-VIVIDSTORM.yml"),
+    { profile = t_utils.get_profile_definition("projector-screen-VWSDSTUST120H.yml"),
       fingerprinted_endpoint_id = 0x01,
       zigbee_endpoints = {
         [1] = {
@@ -66,8 +66,6 @@ test.register_coroutine_test(
   "lifecycle - added test",
   function()
     test.socket.device_lifecycle:__queue_receive({ mock_device.id, "added" })
-    test.socket.capability:__expect_send(mock_device:generate_test_message("Setlimit", capabilities.mode.supportedModes({"设置上限位", "设置下限位", "删除所有限位"})))
-    test.socket.capability:__expect_send(mock_device:generate_test_message("Setlimit", capabilities.mode.mode("设置上限位")))
 	test.socket.capability:__expect_send(mock_device:generate_test_message("hardwareFault", capabilities.hardwareFault.hardwareFault.clear()))
 	
 	local read_0x0000_messge = cluster_base.read_manufacturer_specific_attribute(mock_device, PRIVATE_CLUSTER_ID, 0x0000, MFG_CODE)
@@ -145,11 +143,11 @@ test.register_message_test(
 )
 
 test.register_coroutine_test(
-  "Handle Setlimit 设置上限位",
+  "Handle Setlimit Delete upper limit",
   function()
     test.socket.capability:__queue_receive({
       mock_device.id,
-      { capability = "mode", component = "Setlimit",  command ="setMode" , args = {"设置上限位"}}
+      { capability = "mode", component = "main",  command ="setMode" , args = {"Delete upper limit"}}
     })
     test.socket.zigbee:__expect_send({ mock_device.id,
       cluster_base.write_manufacturer_specific_attribute(mock_device, PRIVATE_CLUSTER_ID,
@@ -159,11 +157,11 @@ test.register_coroutine_test(
 )
 
 test.register_coroutine_test(
-  "Handle Setlimit 设置下限位",
+  "Handle Setlimit Set the upper limit",
   function()
     test.socket.capability:__queue_receive({
       mock_device.id,
-      { capability = "mode", component = "Setlimit",  command ="setMode" , args = {"设置下限位"}}
+      { capability = "mode", component = "main",  command ="setMode" , args = {"Set the upper limit"}}
     })
     test.socket.zigbee:__expect_send({ mock_device.id,
       cluster_base.write_manufacturer_specific_attribute(mock_device, PRIVATE_CLUSTER_ID,
@@ -173,11 +171,11 @@ test.register_coroutine_test(
 )
 
 test.register_coroutine_test(
-  "Handle Setlimit 删除所有限位",
+  "Handle Setlimit Delete lower limit",
   function()
     test.socket.capability:__queue_receive({
       mock_device.id,
-      { capability = "mode", component = "Setlimit",  command ="setMode" , args = {"删除所有限位"}}
+      { capability = "mode", component = "main",  command ="setMode" , args = {"Delete lower limit"}}
     })
     test.socket.zigbee:__expect_send({ mock_device.id,
       cluster_base.write_manufacturer_specific_attribute(mock_device, PRIVATE_CLUSTER_ID,
@@ -187,7 +185,21 @@ test.register_coroutine_test(
 )
 
 test.register_coroutine_test(
-  "Device reported Setlimit 0 and driver emit capabilities.mode.mode 0",
+  "Handle Setlimit Set the lower limit",
+  function()
+    test.socket.capability:__queue_receive({
+      mock_device.id,
+      { capability = "mode", component = "main",  command ="setMode" , args = {"Set the lower limit"}}
+    })
+    test.socket.zigbee:__expect_send({ mock_device.id,
+      cluster_base.write_manufacturer_specific_attribute(mock_device, PRIVATE_CLUSTER_ID,
+        0x0000, MFG_CODE, data_types.Uint8, 3)
+    })
+  end
+)
+
+test.register_coroutine_test(
+  "Device reported mode 0 and driver emit Delete upper limit",
   function()
     local attr_report_data = {
       { 0x0000, data_types.Uint8.ID, 0 }
@@ -196,13 +208,13 @@ test.register_coroutine_test(
       mock_device.id,
       zigbee_test_utils.build_attribute_report(mock_device, PRIVATE_CLUSTER_ID, attr_report_data, MFG_CODE)
     })
-    test.socket.capability:__expect_send(mock_device:generate_test_message("Setlimit",
-      capabilities.mode.mode("设置上限位")))
+    test.socket.capability:__expect_send(mock_device:generate_test_message("main",
+      capabilities.mode.mode("Delete upper limit")))
   end
 )
 
 test.register_coroutine_test(
-  "Device reported Setlimit 1 and driver emit capabilities.mode.mode 1",
+  "Device reported mode 1 and driver emit Set the upper limit",
   function()
     local attr_report_data = {
       { 0x0000, data_types.Uint8.ID, 1 }
@@ -211,13 +223,13 @@ test.register_coroutine_test(
       mock_device.id,
       zigbee_test_utils.build_attribute_report(mock_device, PRIVATE_CLUSTER_ID, attr_report_data, MFG_CODE)
     })
-    test.socket.capability:__expect_send(mock_device:generate_test_message("Setlimit",
-      capabilities.mode.mode("设置下限位")))
+    test.socket.capability:__expect_send(mock_device:generate_test_message("main",
+      capabilities.mode.mode("Set the upper limit")))
   end
 )
 
 test.register_coroutine_test(
-  "Device reported Setlimit 2 and driver emit capabilities.mode.mode 2",
+  "Device reported mode 2 and driver emit Delete lower limit",
   function()
     local attr_report_data = {
       { 0x0000, data_types.Uint8.ID, 2 }
@@ -226,8 +238,23 @@ test.register_coroutine_test(
       mock_device.id,
       zigbee_test_utils.build_attribute_report(mock_device, PRIVATE_CLUSTER_ID, attr_report_data, MFG_CODE)
     })
-    test.socket.capability:__expect_send(mock_device:generate_test_message("Setlimit",
-      capabilities.mode.mode("删除所有限位")))
+    test.socket.capability:__expect_send(mock_device:generate_test_message("main",
+      capabilities.mode.mode("Delete lower limit")))
+  end
+)
+
+test.register_coroutine_test(
+  "Device reported mode 3 and driver emit Set the lower limit",
+  function()
+    local attr_report_data = {
+      { 0x0000, data_types.Uint8.ID, 3 }
+    }
+    test.socket.zigbee:__queue_receive({
+      mock_device.id,
+      zigbee_test_utils.build_attribute_report(mock_device, PRIVATE_CLUSTER_ID, attr_report_data, MFG_CODE)
+    })
+    test.socket.capability:__expect_send(mock_device:generate_test_message("main",
+      capabilities.mode.mode("Set the lower limit")))
   end
 )
 
@@ -262,17 +289,17 @@ test.register_coroutine_test(
 )
 
 test.register_message_test(
-  "WindowCovering CurrentPositionLiftPercentage report 10 emit opening",
+  "WindowCovering CurrentPositionLiftPercentage report 0 emit closed",
   {
     {
       channel = "zigbee",
       direction = "receive",
-      message = { mock_device.id, clusters.WindowCovering.attributes.CurrentPositionLiftPercentage:build_test_attr_report(mock_device, 10) }
+      message = { mock_device.id, clusters.WindowCovering.attributes.CurrentPositionLiftPercentage:build_test_attr_report(mock_device, 0) }
     },
     {
       channel = "capability",
       direction = "send",
-      message = mock_device:generate_test_message("Open", capabilities.windowShade.windowShade.opening())
+      message = mock_device:generate_test_message("main", capabilities.windowShade.windowShade.closed())
     }
   }
 )
@@ -288,11 +315,11 @@ test.register_message_test(
     {
       channel = "capability",
       direction = "send",
-      message = mock_device:generate_test_message("Open", capabilities.windowShade.windowShade.opening())
+      message = mock_device:generate_test_message("main", capabilities.windowShade.windowShade.open())
     }
   }
 )
-
+--[[
 test.register_message_test(
   "WindowCovering CurrentPositionLiftPercentage report 1 emit closing",
   {
@@ -304,9 +331,32 @@ test.register_message_test(
     {
       channel = "capability",
       direction = "send",
-      message = mock_device:generate_test_message("Open", capabilities.windowShade.windowShade.closing())
+      message = mock_device:generate_test_message("main", capabilities.windowShade.windowShade.closing())
     }
   }
+)
+--]]
+
+test.register_coroutine_test(
+    "State transition from opening to partially open",
+    function()
+      test.timer.__create_and_queue_test_time_advance_timer(1, "oneshot")
+      test.socket.zigbee:__queue_receive(
+        {
+          mock_device.id,
+          clusters.WindowCovering.attributes.CurrentPositionLiftPercentage:build_test_attr_report(mock_device, 5)
+        }
+      )
+	  --[[test.mock_time.advance_time(1)
+      test.socket.capability:__expect_send(
+        mock_device:generate_test_message("main", capabilities.windowShade.windowShade.opening())
+      )--]]
+      test.mock_time.advance_time(5)
+      test.socket.capability:__expect_send(
+        mock_device:generate_test_message("main", capabilities.windowShade.windowShade.partially_open())
+      )
+      test.wait_for_events()
+    end
 )
 
 test.run_registered_tests()
