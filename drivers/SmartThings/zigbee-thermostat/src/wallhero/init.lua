@@ -1,0 +1,221 @@
+-- Copyright 2023 SmartThings
+--
+-- Licensed under the Apache License, Version 2.0 (the "License");
+-- you may not use this file except in compliance with the License.
+-- You may obtain a copy of the License at
+--
+--     http://www.apache.org/licenses/LICENSE-2.0
+--
+-- Unless required by applicable law or agreed to in writing, software
+-- distributed under the License is distributed on an "AS IS" BASIS,
+-- WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+-- See the License for the specific language governing permissions and
+-- limitations under the License.
+
+local capabilities = require "st.capabilities"
+local log = require "log"
+local socket = require "cosock.socket"
+local zcl_clusters = require "st.zigbee.zcl.clusters"
+local stDevice = require "st.device"
+
+local Scenes = zcl_clusters.Scenes
+local OnOff = zcl_clusters.OnOff
+local FanControl = zcl_clusters.FanControl
+local ThermostatMode  = capabilities.thermostatMode
+local ThermostatFanMode  = capabilities.thermostatFanMode
+local FanMode  = capabilities.fanMode
+
+local FINGERPRINTS = {
+  { mfr = "WALL HERO", model = "ACL-403STC1" }
+}
+
+local function can_handle_wallhero_button(opts, driver, device, ...)
+  for _, fingerprint in ipairs(FINGERPRINTS) do
+    if device:get_manufacturer() == fingerprint.mfr and device:get_model() == fingerprint.model then
+      return true
+    end
+  end
+  return false
+end
+
+local function scenes_cluster_handler(driver, device, zb_rx)
+  local additional_fields = {
+    state_change = true
+  }
+
+  local ep = zb_rx.address_header.src_endpoint.value-3
+  local button_name = "button" .. ep
+  local event = capabilities.button.button.pushed(additional_fields)
+  local comp = device.profile.components[button_name]
+  if comp ~= nil then
+    device:emit_component_event(comp, event)
+    device:emit_event(event)
+  else
+    log.warn("Attempted to emit button event for unknown button: " .. button_name)
+  end
+end
+
+local function on_off_attr_handler(driver, device, value, zb_rx)
+  local attr = capabilities.switch.switch
+  device:emit_event_for_endpoint(zb_rx.address_header.src_endpoint.value, value.value and attr.on() or attr.off())
+end
+
+local function on_handler(driver, device, command)
+  log.error("Enter on_handler",command.component)
+  device:send_to_component(command.component, zcl_clusters.OnOff.server.commands.On(device))
+end
+
+local function off_handler(driver, device, command)
+  device:send_to_component(command.component, zcl_clusters.OnOff.server.commands.Off(device))
+end
+
+local SUPPORTED_FAN_MODES = {
+  [1]      = { "auto", "low", "medium", "high"},
+  [3]      = { "low", "medium", "high"}
+}
+
+local FAN_MODE_TO_ZIGBEE = {
+  ["auto"] = 0x05,
+  ["low"] = 0x01,
+  ["medium"] = 0x02,
+  ["high"] = 0x03
+}
+
+local ZIGBEE_TO_FAN_MODES = {
+  [1]      =  "low" ,
+  [2]      =  "medium" ,
+  [3]      =  "high" ,
+  [5]      =  "auto" 
+}
+
+local function fan_mode_attr_handler(driver, device, value, zb_rx)
+    local ep = zb_rx.address_header.src_endpoint.value
+	local str = ZIGBEE_TO_FAN_MODES[value.value]
+    if ep == 1  then
+      device:emit_component_event(device.profile.components.main,FanMode.fanMode({ value = str }))
+    elseif ep == 3 then
+	  device:emit_component_event(device.profile.components.fan,FanMode.fanMode({ value = str }))
+    end
+end
+
+local function setFanMode_handler(driver, device, command)
+  log.error("Enter setFanMode_handler",command.component)
+  log.error("Enter setFanMode_handler",command.args.fanMode)
+  local value = FAN_MODE_TO_ZIGBEE[command.args.fanMode]
+  log.error("value",value)
+  device:send_to_component(command.component, FanControl.attributes.FanMode:write(device, value))
+end
+
+local function find_child(parent, ep_id)
+  return parent:get_child_by_parent_assigned_key(string.format("%02X", ep_id))
+end
+
+local function added_handler(driver, device)
+  device:emit_event(ThermostatMode.supportedThermostatModes({"cool", "dryair", "fanonly", "heat"}, { visibility = { displayed = false } }))
+  device:emit_component_event(device.profile.components.main,FanMode.supportedFanModes( SUPPORTED_FAN_MODES[1] , { visibility = { displayed = false }}))
+  device:emit_component_event(device.profile.components.fan,FanMode.supportedFanModes( SUPPORTED_FAN_MODES[3] , { visibility = { displayed = false }}))
+  
+  device:emit_component_event(device.profile.components.main,capabilities.thermostatHeatingSetpoint.heatingSetpointRange({ value = { minimum = 16.00, maximum = 32.00 }, unit = "C" }))
+  device:emit_component_event(device.profile.components.main,capabilities.thermostatCoolingSetpoint.coolingSetpointRange({ value = { minimum = 16.00, maximum = 32.00 }, unit = "C" }))
+  device:emit_component_event(device.profile.components.heat,capabilities.thermostatHeatingSetpoint.heatingSetpointRange({ value = { minimum = 16.00, maximum = 32.00 }, unit = "C" }))
+  
+  for _, component in pairs(device.profile.components) do
+    if component.id ~= "heat" and component.id ~= "fan" then
+	  device:emit_component_event(component,
+        capabilities.button.supportedButtonValues({ "pushed" }, { visibility = { displayed = false } }))
+      if component.id == "main" then
+        device:emit_component_event(component,
+          capabilities.button.numberOfButtons({ value = 30 }, { visibility = { displayed = false } }))
+      else
+        device:emit_component_event(component,
+          capabilities.button.numberOfButtons({ value = 1 }, { visibility = { displayed = false } }))
+    end
+      -- Without this time delay, the state of some buttons cannot be updated
+      socket.sleep(1)
+	end
+  end
+end
+
+local function component_to_endpoint(device, component_id)
+  local ep_num
+  if component_id == "main" then
+    ep_num = 1
+  elseif component_id == "heat" then
+    ep_num = 2
+  elseif component_id == "fan" then
+    ep_num = 3
+  else
+    local btn_num_str = component_id:match("button(%d+)")  --Start from button1
+	if btn_num_str then
+      ep_num = tonumber(btn_num_str) + 3
+	else
+	  ep_num = nil
+    end
+  end
+  
+  return ep_num or device.fingerprinted_endpoint_id
+end
+
+local function endpoint_to_component(device, ep)
+  if ep > 3 then
+    ep = ep - 3
+    local button_comp = string.format("button%d+", ep)
+    if device.profile.components[button_comp] ~= nil then
+      return button_comp
+    else
+      return "button1"
+    end
+  else
+    if ep == 1 then
+	  return "main"
+	elseif ep == 2 then
+	  return "heat"
+	else
+	  return "fan"
+	end
+  end
+end
+
+local device_init = function(self, device)
+  device:set_component_to_endpoint_fn(component_to_endpoint)
+  device:set_endpoint_to_component_fn(endpoint_to_component)
+end
+
+local wallhero_button = {
+  NAME = "Zigbee Wall Hero Button",
+  supported_capabilities = {
+    capabilities.switch,
+  },
+  lifecycle_handlers = {
+    init = device_init,
+    added = added_handler
+  },
+  health_check = false,
+  zigbee_handlers = {
+    cluster = {
+      [Scenes.ID] = {
+        [Scenes.server.commands.RecallScene.ID] = scenes_cluster_handler,
+      }
+    },
+	attr = {
+      [OnOff.ID] = {
+        [OnOff.attributes.OnOff.ID] = on_off_attr_handler
+      },
+	  [FanControl.ID] = {
+        [FanControl.attributes.FanMode.ID] = fan_mode_attr_handler
+      }
+    }
+  },
+  capability_handlers = {
+    [capabilities.switch.ID] = {
+      [capabilities.switch.commands.on.NAME] = on_handler,
+      [capabilities.switch.commands.off.NAME] = off_handler
+    },
+	[capabilities.fanMode.ID] = {
+      [capabilities.fanMode.commands.setFanMode.NAME] = setFanMode_handler
+    }
+  },
+  can_handle = can_handle_wallhero_button
+}
+
+return wallhero_button
