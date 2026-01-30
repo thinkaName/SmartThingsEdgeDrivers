@@ -14,14 +14,12 @@ components:
         version: 1
       - id: fanMode
         version: 1
-      - id: button
-        version: 1
       - id: firmwareUpdate
         version: 1
       - id: refresh
-        version: 1        
+        version: 1
     categories:
-      - name: Thermostat
+      - name: RemoteController
   - id: heat
     capabilities:
       - id: switch
